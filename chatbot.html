@@ -1,0 +1,1058 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Aurora Chatbot</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    :root{
+      color-scheme: light dark;
+      --bg-gradient: radial-gradient(circle at top left,#3b3f65 0%,#131528 35%,#05070f 100%);
+      --panel: rgba(17, 19, 35, 0.68);
+      --panel-border: rgba(255,255,255,0.08);
+      --accent: #7dd3fc;
+      --accent-strong: #38bdf8;
+      --user-bubble: linear-gradient(135deg,#60a5fa,#2563eb);
+      --bot-bubble: rgba(255,255,255,0.12);
+      --text-primary: #f8fafc;
+      --text-secondary: rgba(248,250,252,0.7);
+      --input-bg: rgba(15, 23, 42, 0.9);
+      --shadow: 0 18px 36px rgba(15,23,42,0.35);
+    }
+
+    *{
+      box-sizing:border-box;
+    }
+
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:32px;
+      font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+      background:var(--bg-gradient);
+      color:var(--text-primary);
+    }
+
+    .chatbot{
+      width:min(420px,100%);
+      display:flex;
+      flex-direction:column;
+      gap:0;
+      border-radius:28px;
+      padding:28px 20px 22px;
+      background:var(--panel);
+      border:1px solid var(--panel-border);
+      backdrop-filter: blur(22px);
+      box-shadow:var(--shadow);
+      position:relative;
+      overflow:hidden;
+    }
+
+    .chatbot::before{
+      content:'';
+      position:absolute;
+      inset:0;
+      background:radial-gradient(circle at 20% 20%,rgba(125,211,252,0.18),transparent 60%);
+      pointer-events:none;
+    }
+
+    .chat-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:0 6px 22px;
+      z-index:1;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+
+    .brand-avatar{
+      width:46px;
+      height:46px;
+      border-radius:16px;
+      background:linear-gradient(135deg,#38bdf8,#22d3ee);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:700;
+      font-size:20px;
+      color:#0f172a;
+      box-shadow:0 10px 25px rgba(56,189,248,0.35);
+      overflow:hidden;
+    }
+
+    .brand-avatar img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+    }
+
+    .brand-text{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+
+    .brand-text strong{
+      font-size:18px;
+      letter-spacing:0.3px;
+    }
+
+    .brand-text span{
+      font-size:13px;
+      color:var(--text-secondary);
+    }
+
+    .brand-text small{
+      font-size:12px;
+      color:rgba(248,250,252,0.55);
+      letter-spacing:0.25px;
+    }
+
+    .status-chip{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 12px;
+      border-radius:999px;
+      background:rgba(125,211,252,0.12);
+      color:var(--accent);
+      font-size:13px;
+      font-weight:500;
+      letter-spacing:0.2px;
+    }
+
+    .status-chip span{
+      display:block;
+      width:8px;
+      height:8px;
+      border-radius:50%;
+      background:var(--accent);
+      box-shadow:0 0 12px rgba(125,211,252,0.8);
+    }
+
+    .chat-body{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+      padding:0 4px 18px;
+      overflow-y:auto;
+      scroll-behavior:smooth;
+    }
+
+    .chat-body::-webkit-scrollbar{
+      width:8px;
+    }
+
+    .chat-body::-webkit-scrollbar-track{
+      background:transparent;
+    }
+
+    .chat-body::-webkit-scrollbar-thumb{
+      background:rgba(148,163,184,0.35);
+      border-radius:999px;
+    }
+
+    .message{
+      display:flex;
+      align-items:flex-start;
+      gap:12px;
+      width:100%;
+      animation:fadeUp 220ms ease;
+    }
+
+    .message--user{
+      justify-content:flex-end;
+    }
+
+    .message--user .bubble{
+      background:var(--user-bubble);
+      color:#fff;
+      border-bottom-right-radius:8px;
+      border-bottom-left-radius:18px;
+      box-shadow:0 12px 24px rgba(37,99,235,0.35);
+    }
+
+    .message--bot .bubble{
+      background:var(--bot-bubble);
+      border-bottom-left-radius:8px;
+      border-bottom-right-radius:18px;
+      border:1px solid rgba(255,255,255,0.04);
+    }
+
+    .bubble{
+      padding:14px 16px 16px;
+      border-radius:18px;
+      font-size:14px;
+      line-height:1.55;
+      letter-spacing:0.15px;
+      max-width:92%;
+      position:relative;
+      backdrop-filter:blur(2px);
+      white-space:pre-line;
+    }
+
+    .bubble time{
+      display:block;
+      margin-top:10px;
+      font-size:11px;
+      color:var(--text-secondary);
+      letter-spacing:0.4px;
+    }
+
+    .avatar{
+      width:38px;
+      height:38px;
+      border-radius:14px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex-shrink:0;
+      background:rgba(148,163,184,0.12);
+      color:var(--accent);
+      font-weight:600;
+      letter-spacing:0.4px;
+      box-shadow:0 6px 20px rgba(15,23,42,0.25);
+    }
+
+    .message--user .avatar{
+      order:2;
+      background:rgba(96,165,250,0.15);
+      color:#bfdbfe;
+    }
+
+    .typing{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin-left:50px;
+      color:var(--text-secondary);
+      font-size:13px;
+      letter-spacing:0.3px;
+      opacity:0;
+      transform:translateY(6px);
+      transition:opacity 0.2s ease,transform 0.2s ease;
+    }
+
+    .typing--visible{
+      opacity:1;
+      transform:translateY(0);
+    }
+
+    .typing span{
+      width:6px;
+      height:6px;
+      border-radius:50%;
+      background:rgba(148,163,184,0.65);
+      animation:typing 1s infinite ease-in-out;
+    }
+
+    .typing span:nth-child(2){
+      animation-delay:0.2s;
+    }
+
+    .typing span:nth-child(3){
+      animation-delay:0.4s;
+    }
+
+    .chat-footer{
+      margin-top:auto;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      padding:14px 6px 0;
+      border-top:1px solid rgba(148,163,184,0.14);
+    }
+
+    .input-row{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      background:var(--input-bg);
+      border-radius:20px;
+      padding:10px 12px;
+      border:1px solid rgba(255,255,255,0.08);
+      box-shadow:inset 0 0 0 1px rgba(15,23,42,0.35);
+    }
+
+    .input-row input{
+      flex:1;
+      border:none;
+      background:transparent;
+      color:var(--text-primary);
+      font-size:14px;
+      font-family:inherit;
+      letter-spacing:0.2px;
+      outline:none;
+    }
+
+    .input-row input::placeholder{
+      color:rgba(148,163,184,0.55);
+    }
+
+    .input-row button{
+      border:none;
+      border-radius:16px;
+      padding:10px 18px;
+      background:var(--accent-strong);
+      color:#0f172a;
+      font-weight:600;
+      font-size:14px;
+      letter-spacing:0.3px;
+      cursor:pointer;
+      transition:transform 0.15s ease,box-shadow 0.2s ease;
+      box-shadow:0 12px 22px rgba(56,189,248,0.35);
+    }
+
+    .input-row button:disabled{
+      opacity:0.6;
+      cursor:not-allowed;
+      transform:none;
+      box-shadow:none;
+    }
+
+    .input-row button:not(:disabled):hover{
+      transform:translateY(-2px);
+      box-shadow:0 16px 28px rgba(56,189,248,0.45);
+    }
+
+    .suggestions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+
+    .suggestions button{
+      padding:8px 14px;
+      border-radius:14px;
+      border:1px solid rgba(148,163,184,0.2);
+      background:rgba(148,163,184,0.12);
+      color:var(--text-secondary);
+      font-size:12px;
+      letter-spacing:0.2px;
+      cursor:pointer;
+      transition:all 0.2s ease;
+    }
+
+    .suggestions button:hover{
+      background:rgba(148,163,184,0.22);
+      color:var(--accent);
+      border-color:rgba(125,211,252,0.35);
+    }
+
+    .toolbar{
+      display:flex;
+      justify-content:flex-end;
+      gap:10px;
+      font-size:12px;
+      color:var(--text-secondary);
+    }
+
+    .toolbar button{
+      border:none;
+      background:none;
+      color:inherit;
+      cursor:pointer;
+      padding:6px 0;
+      transition:color 0.2s ease;
+    }
+
+    .toolbar button:hover{
+      color:var(--accent);
+    }
+
+    @keyframes fadeUp{
+      from{
+        opacity:0;
+        transform:translateY(8px);
+      }
+      to{
+        opacity:1;
+        transform:translateY(0);
+      }
+    }
+
+    @keyframes typing{
+      0%,80%,100%{opacity:0.4;transform:translateY(0);}
+      40%{opacity:1;transform:translateY(-3px);}
+    }
+
+    @media (max-width:520px){
+      body{
+        padding:18px;
+      }
+      .chatbot{
+        border-radius:22px;
+        padding:24px 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="chatbot" aria-label="Aurora virtual assistant">
+    <header class="chat-header">
+      <div class="brand">
+        <span class="brand-avatar" aria-hidden="true">
+          <img src="ramraj.png" alt="Mr. Ramraj Rajbanshi"/>
+        </span>
+        <div class="brand-text">
+          <strong>Learn English ChatBot</strong>
+          <span>Your personal study guide</span>
+          <small>Designed by Mr. Ramraj Rajbanshi</small>
+        </div>
+      </div>
+      <div class="status-chip" role="status" aria-live="polite">
+        <span></span>
+        Online
+      </div>
+    </header>
+
+    <section class="chat-body" id="messageList" aria-live="polite" aria-label="Chat conversation">
+    </section>
+
+    <div id="typingIndicator" class="typing" role="status" aria-live="polite" aria-hidden="true">
+      <span></span><span></span><span></span>
+      Aurora is typing…
+    </div>
+
+    <footer class="chat-footer">
+      <div class="toolbar">
+        <button type="button" id="resetChat" aria-label="Clear conversation history">Reset chat</button>
+      </div>
+      <div class="suggestions" id="quickReplies" aria-label="Quick prompts">
+      </div>
+      <form class="input-row" id="chatForm" autocomplete="off">
+        <input id="userInput" name="message" type="text" placeholder="Ask me anything..." required minlength="1" />
+        <button type="submit" id="sendButton">Send</button>
+      </form>
+    </footer>
+  </main>
+
+  <script>
+    const messageList = document.getElementById('messageList');
+    const typingIndicator = document.getElementById('typingIndicator');
+    const chatForm = document.getElementById('chatForm');
+    const userInput = document.getElementById('userInput');
+    const sendButton = document.getElementById('sendButton');
+    const resetChat = document.getElementById('resetChat');
+    const quickReplies = document.getElementById('quickReplies');
+
+    const quickReplyOptions = [
+      '/define_noun',
+      '/types_of_verbs',
+      '/tense_explanation',
+      '/articles_usage',
+      '/conditional_sentences',
+      '/voice_chart',
+      '/literary_periods',
+      '/poetic_devices',
+      '/types_of_drama',
+      '/vowel_sounds',
+      '/nepali_vowels',
+      '/story_elements',
+      '/types_of_novel',
+      '/ielts_preparation_plan',
+      '/sat_preparation_plan',
+      'Give me English grammar tips',
+      'Explain English education in Nepal',
+      'How can I improve spoken English?',
+      'Suggest literature essay topics',
+      'Provide pronunciation tips'
+    ];
+
+    const openingMessage = [
+      'Hello! I focus on English learning, teaching, literature, grammar, and exam preparation. Ask me anything in that space.'
+    ];
+
+    function createMessageElement(author, text){
+      const wrapper = document.createElement('div');
+      wrapper.className = `message message--${author}`;
+
+      const avatar = document.createElement('div');
+      avatar.className = 'avatar';
+      avatar.setAttribute('aria-hidden','true');
+      avatar.textContent = author === 'user' ? 'You' : 'Au';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.textContent = text;
+
+      const time = document.createElement('time');
+      time.dateTime = new Date().toISOString();
+      time.textContent = formatTime(new Date());
+      bubble.appendChild(time);
+
+      if(author === 'user'){
+        wrapper.appendChild(bubble);
+        wrapper.appendChild(avatar);
+      }else{
+        wrapper.appendChild(avatar);
+        wrapper.appendChild(bubble);
+      }
+
+      return wrapper;
+    }
+
+    function appendMessage(author, text){
+      const message = createMessageElement(author, text);
+      messageList.appendChild(message);
+      messageList.scrollTop = messageList.scrollHeight;
+    }
+
+    function toggleTypingIndicator(show){
+      typingIndicator.classList.toggle('typing--visible', show);
+      typingIndicator.setAttribute('aria-hidden', show ? 'false' : 'true');
+    }
+
+    function formatTime(date){
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function handleQuickReply(text){
+      userInput.value = text;
+      userInput.focus();
+      handleSubmit(text);
+    }
+
+    function seedQuickReplies(){
+      quickReplyOptions.forEach(option => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = option;
+        button.addEventListener('click', () => handleQuickReply(option));
+        quickReplies.appendChild(button);
+      });
+    }
+
+    function initializeConversation(){
+      openingMessage.forEach(text => appendMessage('bot', text));
+    }
+
+    function normalize(text){
+      return text.toLowerCase().trim();
+    }
+
+    const commandResponses = {
+      '/define_noun': 'A noun names a person, place, thing, or idea.\nExamples: teacher, Kathmandu, laptop, freedom.',
+      '/define_verb': 'A verb expresses an action, occurrence, or state of being.\nExamples: run, think, become, is.',
+      '/define_adjective': 'An adjective describes or modifies a noun or pronoun by giving more detail.\nExamples: bright, courageous, Nepali, three.',
+      '/define_adverb': 'An adverb modifies a verb, adjective, or another adverb, often showing manner, time, place, or degree.\nExamples: quickly, quite, here, yesterday.',
+      '/define_pronoun': 'A pronoun replaces a noun to avoid repetition.\nExamples: he, she, it, they, which, someone.',
+      '/define_preposition': 'A preposition shows the relationship between a noun/pronoun and another word in the sentence.\nExamples: on, between, during, without.',
+      '/define_conjunction': 'A conjunction links words, phrases, or clauses.\nCoordinating: and, but, or. Subordinating: because, although, unless.',
+      '/define_interjection': 'An interjection expresses sudden feeling or emotion and often stands alone.\nExamples: Wow!, Oh no!, Hurray!, Alas!',
+      '/types_of_nouns': 'Common vs proper, concrete vs abstract, countable vs uncountable, collective, compound, and possessive nouns.\nExamples: city (common), Kathmandu (proper), team (collective).',
+      '/types_of_verbs': 'Main, auxiliary, linking, transitive, intransitive, regular, irregular, modal verbs.\nExamples: run (main), have (auxiliary), seem (linking), can (modal).',
+      '/conditional_sentences': 'Conditional sentence types:\n• Zero Conditional: If + present simple, present simple (facts). “If water reaches 100°C, it boils.”\n• First Conditional: If + present simple, will + base verb (real future). “If it rains, we will cancel the trip.”\n• Second Conditional: If + past simple, would + base verb (unlikely present/future). “If I had more time, I would join your class.”\n• Third Conditional: If + past perfect, would have + past participle (past unreal). “If she had studied, she would have passed.”\n• Mixed Conditional: combines second + third to show past condition with present result or vice versa. “If I had taken the job, I would be living abroad now.”\n\nConditional table:\nType                         | Structure                                   | Example                                                        | Use / Meaning\n-----------------------------|---------------------------------------------|----------------------------------------------------------------|----------------------------------------------\nZero Conditional              | If + present simple, present simple         | If you heat water, it boils.                                   | General truths, scientific facts\nFirst Conditional             | If + present simple, will + base verb       | If it rains, I will take an umbrella.                          | Real possibility in the future\nSecond Conditional            | If + past simple, would + base verb         | If I won the lottery, I would buy a house.                     | Unreal or hypothetical present/future\nThird Conditional             | If + past perfect, would have + past part.  | If she had studied, she would have passed the exam.            | Unreal past; regrets or hypotheticals\nMixed Conditional (Type 1+3)  | If + past perfect, would + base verb        | If he had trained, he would be fit now.                        | Past condition affecting present result\nMixed Conditional (Type 2+3)  | If + past simple, would have + past part.   | If I were taller, I would have joined the basketball team.     | Present/future condition affecting past result',
+      '/voice_chart': 'Active vs passive forms by tense:\n\nTense               | Active Voice                               | Passive Voice                                          | Notes / Example\n--------------------|---------------------------------------------|--------------------------------------------------------|----------------------------------------------------------------\nPresent Simple      | Subject + base verb(s/es) + object          | Object + is/are + past participle (+ by subject)       | Active: She writes a letter. Passive: A letter is written by her.\nPresent Continuous  | Subject + is/am/are + verb-ing + object     | Object + is/are + being + past participle              | Active: She is writing a letter. Passive: A letter is being written by her.\nPresent Perfect     | Subject + has/have + past participle + obj. | Object + has/have + been + past participle             | Active: She has written a letter. Passive: A letter has been written by her.\nPast Simple         | Subject + past verb + object                | Object + was/were + past participle                    | Active: She wrote a letter. Passive: A letter was written by her.\nPast Continuous     | Subject + was/were + verb-ing + object      | Object + was/were + being + past participle            | Active: She was writing a letter. Passive: A letter was being written by her.\nPast Perfect        | Subject + had + past participle + object    | Object + had + been + past participle                  | Active: She had written a letter. Passive: A letter had been written by her.\nFuture Simple       | Subject + will + base verb + object         | Object + will be + past participle                     | Active: She will write a letter. Passive: A letter will be written by her.\nFuture Continuous   | Subject + will be + verb-ing + object       | (Rarely used in passive)                               | Active: She will be writing a letter. Passive form seldom used.\nFuture Perfect      | Subject + will have + past participle + obj.| Object + will have been + past participle              | Active: She will have written a letter. Passive: A letter will have been written by her.',
+      '/active_to_passive': 'Active: subject performs the action. Passive: subject receives the action.\nFormula: Object + be + past participle (+ by subject).\nExample: Active “The teacher explains the rule” → Passive “The rule is explained by the teacher.”',
+      '/passive_to_active': 'Locate the doer in the passive sentence and move it to subject position; adjust the verb to an active form.\nExample: Passive “The poem was written by Wordsworth.” → Active “Wordsworth wrote the poem.”',
+      '/direct_to_indirect': 'Change reporting verb tense, pronouns, time expressions, and remove quotation marks.\nExample: Direct “She said, ‘I am studying.’” → Indirect “She said that she was studying.”',
+      '/indirect_to_direct': 'Restore quotation marks, adjust pronouns/time words, and shift verb tense back if needed.\nExample: Indirect “He said that he would call me.” → Direct “He said, ‘I will call you.’”',
+      '/tense_explanation': 'English has 12 major tenses across three time frames (present, past, future) and four aspects (simple, continuous, perfect, perfect continuous).\n\n| Tense | Aspect | Structure | Example |\n| --- | --- | --- | --- |\n| Present | Simple | Subject + base verb (s/es) | She writes a letter. |\n|  | Continuous | Subject + is/am/are + verb-ing | She is writing a letter. |\n|  | Perfect | Subject + has/have + past participle | She has written a letter. |\n|  | Perfect Continuous | Subject + has/have + been + verb-ing | She has been writing a letter. |\n| Past | Simple | Subject + past verb | She wrote a letter. |\n|  | Continuous | Subject + was/were + verb-ing | She was writing a letter. |\n|  | Perfect | Subject + had + past participle | She had written a letter. |\n|  | Perfect Continuous | Subject + had + been + verb-ing | She had been writing a letter. |\n| Future | Simple | Subject + will/shall + base verb | She will write a letter. |\n|  | Continuous | Subject + will be + verb-ing | She will be writing a letter. |\n|  | Perfect | Subject + will have + past participle | She will have written a letter. |\n|  | Perfect Continuous | Subject + will have been + verb-ing | She will have been writing a letter. |\n\nUse this table as a quick reference when forming sentences in different time frames.',
+      '/conditional_sentences': 'Conditional sentence types:\n• Zero Conditional: If + present simple, present simple (facts). “If water reaches 100°C, it boils.”\n• First Conditional: If + present simple, will + base verb (real future). “If it rains, we will cancel the trip.”\n• Second Conditional: If + past simple, would + base verb (unlikely present/future). “If I had more time, I would join your class.”\n• Third Conditional: If + past perfect, would have + past participle (past unreal). “If she had studied, she would have passed.”\n• Mixed Conditional: combines second + third to show past condition with present result or vice versa. “If I had taken the job, I would be living abroad now.”',
+      '/sentence_structure': 'Simple (1 independent clause), compound (2 independent clauses), complex (independent + dependent), compound-complex (2 independent + 1 dependent).',
+      '/punctuation_rules': 'Key marks: period/full stop, comma for lists and clauses, semicolon between related clauses, colon introducing lists, apostrophe for possession/contractions, quotation marks for speech, question/exclamation marks for tone.',
+      '/common_errors': 'Frequent mistakes: subject-verb disagreement, misuse of articles, run-on sentences, wrong prepositions, double negatives, misplaced modifiers.\nKeep a correction log to track them.',
+      '/articles_usage': 'Use “a/an” for singular non-specific nouns (use “an” before vowel sound). Use “the” for specific or previously mentioned nouns.\nExample: “I saw a cat. The cat was sleeping.”',
+      '/preposition_exercises': 'Try: 1) Fill in blanks with at/on/in for time. 2) Choose correct preposition after verbs (listen to, depend on). 3) Describe a room using spatial prepositions.',
+      '/define_literature': 'Literature refers to written works with artistic or intellectual value, including fiction, poetry, drama, and nonfiction.',
+      '/types_of_literature': 'Main forms: prose (novels, short stories, essays), poetry (verse), drama (plays), and nonfiction (biography, memoir).',
+      '/famous_authors': 'Key authors: William Shakespeare, Jane Austen, Charles Dickens, Virginia Woolf, Chinua Achebe, Toni Morrison, Khaled Hosseini.',
+      '/literary_terms': 'Essential terms: simile, metaphor, personification, imagery, irony, symbolism, allusion, foreshadowing, motif, theme.',
+      '/plot_explanation': 'Plot is the sequence of events: exposition, rising action, climax, falling action, resolution.\nSummaries should show causation and conflict.',
+      '/character_analysis': 'Examine traits, motivations, relationships, development, and conflicts.\nSupport claims with textual evidence.',
+      '/theme_analysis': 'Identify central ideas (e.g., love, power, identity) and show how characters, plot, and symbols convey them.',
+      '/symbolism_in_lit': 'Symbols are objects or actions representing deeper meanings.\nExample: The green light in “The Great Gatsby” stands for hope and the American Dream.',
+      '/mood_and_tone': 'Mood is the atmosphere felt by the reader; tone is the author’s attitude.\nAnalyze diction, imagery, and syntax to determine both.',
+      '/literary_periods': 'Periods include Old English, Middle English, Renaissance, Neoclassical, Romantic, Victorian, Modernist, Postmodern, Contemporary.',
+      '/poetic_devices': 'Core devices: alliteration, assonance, consonance, metaphor, simile, personification, enjambment, hyperbole, onomatopoeia.',
+      '/prose_vs_poetry': 'Prose uses sentences and paragraphs; poetry uses lines, stanzas, rhythm, and often figurative language.\nPoetry is typically more condensed and musical.',
+      '/classic_works': 'Classics: “Pride and Prejudice,” “Moby-Dick,” “Great Expectations,” “Hamlet,” “Jane Eyre,” “The Odyssey.”',
+      '/modern_works': 'Modern highlights: “Beloved,” “1984,” “The Kite Runner,” “Things Fall Apart,” “The God of Small Things,” “Normal People.”',
+      '/literature_quiz': 'Sample quiz: 1) Who wrote “To Kill a Mockingbird”? 2) Define “dramatic irony.” 3) Identify the theme of “Animal Farm.”',
+      '/compare_authors': 'Compare authors by theme, style, historical context, narrative voice, and recurring motifs.\nExample: Austen vs. Brontë on romance and social class.',
+      '/literary_awards': 'Major awards: Nobel Prize in Literature, Booker Prize, Pulitzer Prize, National Book Award, Costa Book Award.',
+      '/critical_analysis': 'Steps: read closely, annotate, frame a thesis, analyze form and content, use theory if relevant, support with evidence, conclude significance.',
+      '/essay_topics_lit': 'Essay prompts: gender in Victorian fiction, symbolism of nature in Romantic poetry, satire in “Gulliver’s Travels,” identity in postcolonial novels.',
+      '/literature_summary': 'Summaries concisely cover setting, main characters, central conflict, major events, and resolution.',
+      '/define_poetry': 'Poetry is a literary form emphasizing rhythm, sound, imagery, and condensed language to evoke emotion or ideas.',
+      '/types_of_poems': 'Forms include sonnet, haiku, limerick, ode, elegy, epic, free verse, ballad, villanelle.',
+      '/famous_poets': 'Notable poets: William Wordsworth, Emily Dickinson, Langston Hughes, Maya Angelou, T. S. Eliot, Seamus Heaney, Rabindranath Tagore.',
+      '/rhyme_scheme': 'Rhyme scheme is the pattern of end rhymes labeled with letters (ABAB, AABB, etc.). Identify by matching sounds per line.',
+      '/meter_in_poetry': 'Meter is the rhythmic pattern of stressed and unstressed syllables (iambic pentameter, trochaic tetrameter). Count feet per line.',
+      '/alliteration_examples': 'Alliteration repeats initial consonant sounds: “Silver seas softly shimmer.”\nUse it to create musical effects.',
+      '/assonance_examples': 'Assonance repeats vowel sounds: “The light of the fire is a sight.”\nIt adds internal rhythm.',
+      '/onamatopoeia_examples': 'Onomatopoeia uses words that imitate sounds: buzz, splash, clang, whisper.',
+      '/personification_examples': 'Personification gives human qualities to nonhuman things: “The wind whispered secrets through the trees.”',
+      '/imagery_examples': 'Imagery appeals to senses: visual, auditory, tactile, gustatory, olfactory.\nExample: “Warm sunlight spilled across the quiet meadow.”',
+      '/analyze_poem': 'Steps: read aloud, note speaker and situation, paraphrase literal meaning, examine imagery, tone, devices, structure, and interpret theme.',
+      '/sonnet_structure': 'Traditional sonnets have 14 lines, often iambic pentameter. Shakespearean: 3 quatrains + couplet (ABAB CDCD EFEF GG). Petrarchan: octave (ABBAABBA) + sestet (CDECDE).',
+      '/haiku_examples': 'Haiku follow 5-7-5 syllable pattern, often about nature.\nExample: “Winter solitude / In a world of one color / The sound of wind.”',
+      '/limerick_examples': 'Limericks are humorous five-line poems with AABBA rhyme and anapestic meter.\nExample: “There once was a teacher from Nome…”',
+      '/poetic_devices_quiz': 'Quiz idea: identify devices in lines, match terms to definitions, explain effects of imagery or metaphor.',
+      '/famous_poem_summary': 'Example: “The Road Not Taken” by Frost—speaker reflects on choices symbolized by diverging paths and their impact on life.',
+      '/write_poem_prompt': 'Prompt: Write a poem about learning English using sensory imagery and at least one metaphor about language.',
+      '/free_verse_examples': 'Free verse avoids strict meter or rhyme.\nExample poets: Walt Whitman, Carl Sandburg, contemporary spoken word artists.',
+      '/poetry_terms': 'Key terms: stanza, enjambment, caesura, refrain, conceit, volta, diction, persona.',
+      '/poetry_analysis_steps': '1) Read aloud. 2) Identify speaker, audience, setting. 3) Note structure and devices. 4) Interpret meaning. 5) Connect to context.',
+      '/define_drama': 'Drama is literature designed for performance, combining dialogue, action, and stage directions to tell a story.',
+      '/types_of_drama': 'Major types: tragedy, comedy, tragicomedy, melodrama, farce, historical drama, musical theatre.',
+      '/famous_playwrights': 'Key playwrights: William Shakespeare, Henrik Ibsen, George Bernard Shaw, Arthur Miller, Lorraine Hansberry, August Wilson.',
+      '/elements_of_drama': 'Elements: plot, characters, dialogue, conflict, setting, theme, spectacle, music.',
+      '/structure_of_play': 'Typical structure: exposition, rising action, climax, falling action, resolution; often organized into acts and scenes.',
+      '/tragedy_vs_comedy': 'Tragedy deals with serious themes and often ends in downfall; comedy highlights conflicts with humor and usually ends happily.',
+      '/dramatic_terms': 'Terms: monologue, soliloquy, aside, stage directions, blocking, protagonist, antagonist, dramatic irony.',
+      '/analyze_character_drama': 'Examine objectives, obstacles, relationships, evolution, and delivery hints from stage directions.',
+      '/analyze_plot_drama': 'Map scenes, turning points, climax, and resolution; note how staging intensifies conflict.',
+      '/analyze_theme_drama': 'Track motifs, dialogue, and conflicts that reveal the central message (e.g., justice, identity, power).',
+      '/famous_plays_summary': 'Examples: “Hamlet” explores revenge and indecision; “Death of a Salesman” critiques the American Dream; “A Doll’s House” tackles gender roles.',
+      '/drama_quiz': 'Quiz suggestions: identify playwrights, match terms to definitions, analyze short scene excerpts.',
+      '/stage_directions': 'Stage directions guide movement, tone, lighting, and props for actors and directors (e.g., “She crosses to the window”).',
+      '/dialogue_analysis': 'Focus on subtext, diction, pacing, and how dialogue reveals character motives and relationships.',
+      '/one_act_plays': 'Notable one-act plays: “The Bear” by Chekhov, “Riders to the Sea” by Synge, “The Dumb Waiter” by Pinter.',
+      '/drama_exercises': 'Exercises: improvise scenes from prompts, rewrite a monologue, storyboard stage blocking, create character backstories.',
+      '/dramatic_conflict': 'Types: man vs. self, man vs. man, man vs. society, man vs. fate/nature; conflicts drive dramatic tension.',
+      '/write_short_play': 'Prompt: Write a 10-minute play set in an English classroom facing a sudden challenge. Include clear stage directions.',
+      '/modern_drama': 'Modern plays: “Waiting for Godot,” “Top Girls,” “Angels in America,” “Disgraced,” “The Curious Incident of the Dog in the Night-Time.”',
+      '/historical_drama': 'Historical dramas present past events: “Henry V,” “A Man for All Seasons,” “The Crucible,” “Julius Caesar.”',
+      '/vowel_sounds': 'English vowels: short (cat, bed, pin, not, cup), long (cake, team, time, home, flute), plus schwa /ə/ and diphthongs.',
+      '/consonant_sounds': 'Voiced vs voiceless consonants (b/p, d/t, g/k). Include fricatives, stops, affricates, nasals, liquids, glides.',
+      '/short_vs_long_vowels': 'Short vowels occur in closed syllables (sit, cup); long vowels often in open syllables or silent “e” words (site, cube).',
+      '/diphthongs': 'English diphthongs glide between vowel sounds: /aɪ/ (time), /eɪ/ (day), /ɔɪ/ (boy), /aʊ/ (house), /oʊ/ (go).',
+      '/stress_in_words': 'Word stress falls on one syllable (TAble, beGIN). Changing stress can change meaning (REcord vs reCORD).',
+      '/stress_in_sentences': 'Sentence stress emphasizes content words (nouns, verbs) and reduces function words.\nExample: “I DIDN’T say he stole the money.”',
+      '/intonation_patterns': 'Rising intonation for yes/no questions, falling for statements and wh-questions, fall-rise for polite or uncertain meanings.',
+      '/pronunciation_tips': 'Tips: listen actively, imitate native speakers, record yourself, practice minimal pairs, watch mouth positioning.',
+      '/minimal_pairs': 'Pairs differing by one sound: ship/sheep, fan/van, bat/bet, light/right.\nUse for accuracy drills.',
+      '/silent_letters': 'Common silent letters: k in knife, b in thumb, w in write, l in calm, h in hour.',
+      '/phonetic_symbols': 'International Phonetic Alphabet (IPA) represents sounds precisely (e.g., /θ/ in think, /ð/ in this, /ʃ/ in she).',
+      '/pronounce_word': 'Say the word slowly, mark stressed syllable, check IPA or audio, practice linking to surrounding words.',
+      '/pronounce_sentence': 'Chunk the sentence, note stress and intonation, practice connected speech, linking sounds and reductions.',
+      '/common_mispronunciations': 'Examples: “comfortable” (/ˈkʌmftəbl/), “salmon” (/ˈsæmən/), “develop” (/dɪˈveləp/), “schedule” (UK /ˈʃedjuːl/, US /ˈskedʒuːl/).',
+      '/accent_differences': 'British vs American: pronunciation of /r/, vowel sounds (bath), vocabulary differences.\nOther accents add unique intonation patterns.',
+      '/rhythm_in_speech': 'English is stress-timed: stressed syllables occur at regular intervals, unstressed syllables shorten to fit the rhythm.',
+      '/linking_sounds': 'Link words: consonant-to-vowel (“turn off”), vowel-to-vowel (use glide, “go on”), identical consonants merge (“big game”).',
+      '/reduce_sounds': 'Reduce function words to schwa: to /tə/, for /fə/, and /ən/. Helps natural speech flow.',
+      '/intelligible_speech': 'Aim for clarity: moderate speed, clear stress, accurate vowel length, appropriate intonation, and articulation.',
+      '/pronunciation_quiz': 'Quiz idea: identify IPA symbols, choose correct stress, transcribe minimal pairs, match words to audio clips.',
+      '/nepali_vowels': 'Nepali vowels: अ /a/, आ /aː/, इ /i/, ई /iː/, उ /u/, ऊ /uː/, ऋ /ri/, ए /e/, ऐ /ai/, ओ /o/, औ /au/.\nLong vs short marked by matras.',
+      '/nepali_consonants': 'Groups: guttural क ख ग घ ङ, palatal च छ ज झ ञ, retroflex ट ठ ड ढ ण, dental त थ द ध न, labial प फ ब भ म, plus semivowels य र ल व and sibilants श ष स ह.',
+      '/nepali_pronunciation_tips': 'Maintain aspiration contrasts (क vs ख), clear retroflex sounds, and nasalization when indicated.',
+      '/nepali_stress': 'Nepali stress is generally light and falls on the first syllable, less contrastive than in English.',
+      '/nepali_tones': 'Nepali is not tonal like Mandarin; intonation conveys emotion or question forms rather than lexical meaning.',
+      '/nepali_minimal_pairs': 'Examples: बल /bal/ (strength) vs बाल /baːl/ (hair); कलम /kalam/ vs कलाम /kalaːm/.\nFocus on vowel length.',
+      '/nepali_syllables': 'Mostly CV (consonant + vowel) structure. Clusters occur with conjunct consonants (e.g., स्कूल).',
+      '/nepali_word_stress': 'Primary stress often on first syllable: का-क-रो (kā-ka-ro). Emphasis changes with context but not phonemic.',
+      '/nepali_sentence_rhythm': 'Rhythm is syllable-timed; each syllable receives similar duration compared to English stress-timed rhythm.',
+      '/nepali_phonetic_symbols': 'Nepali uses Devanagari script; IPA approximations help show aspirated (ʰ) and retroflex (ʈ, ɖ) sounds.',
+      '/nepali_common_mispronunciations': 'Learners may confuse retroflex/dental pairs or short vs long vowels. Practice minimal pairs to distinguish.',
+      '/nepali_pronounce_word': 'Break into syllables, pronounce consonant clusters carefully, sustain long vowels, note nasal markers (ँ, ँ).',
+      '/nepali_pronounce_sentence': 'Maintain steady rhythm, slight rise for yes/no questions, end with fall for statements.',
+      '/nepali_diphthongs': 'Common diphthongs: ऐ /ai/, औ /au/, इउ /iu/, एउ /eu/. Glide smoothly between vowels.',
+      '/nepali_accent_variations': 'Regional variants include Kathmandu dialect, eastern vs western pronunciations, and influence from neighboring languages.',
+      '/nepali_reading_tips': 'Practice Devanagari script daily, read simple stories aloud, connect letters with sounds, and track matra changes.',
+      '/nepali_spelling_sounds': 'Spelling largely phonetic, but conjuncts (ज्ञ, क्ष, त्र) have blended sounds.\nLearn common ligatures early.',
+      '/nepali_tongue_twisters': 'Try: “कर्कटको कर्कटाकार काँचो काँढा काट्ने” to build agility in aspirated sounds.',
+      '/nepali_listen_repeat': 'Exercise: listen to Nepali radio segments, pause, repeat sentence-by-sentence focusing on vowel length.',
+      '/nepali_quiz_sounds': 'Quiz: match Devanagari letters to IPA, identify aspirated vs unaspirated, choose correct pronunciation audio.',
+      '/define_story': 'A story is a narrative with characters, plot, conflict, and setting designed to entertain or inform.',
+      '/types_of_stories': 'Types: fairy tales, myths, legends, fables, detective stories, science fiction, historical fiction, realist stories.',
+      '/story_elements': 'Elements: plot, characters, setting, conflict, theme, point of view, tone.',
+      '/analyze_story_plot': 'Identify exposition, rising action, climax, falling action, resolution; examine cause-effect relationships.',
+      '/analyze_story_character': 'Explore direct/indirect characterization, motivations, conflicts, growth, and relationships.',
+      '/analyze_story_theme': 'Determine the central message or lesson and support with key events or symbols.',
+      '/famous_short_stories': 'Classics: “The Lottery” (Jackson), “The Gift of the Magi” (Henry), “A Piece of Yellow Soap” (Bhattarai), “A Clean, Well-Lighted Place” (Hemingway).',
+      '/story_summary': 'Summarize with setting, main characters, conflict, major events, and resolution in 4-5 sentences.',
+      '/moral_of_story': 'State the lesson learned (e.g., “slow and steady wins the race”). Explain how plot reveals it.',
+      '/write_story_prompt': 'Prompt: Write a short story about a learner whose English speaking ability unlocks an unexpected opportunity.',
+      '/story_quiz': 'Quiz prompts: identify climax, name protagonist/antagonist, explain narrative point of view.',
+      '/compare_stories': 'Compare themes, character arcs, narrative voice, settings, and cultural contexts.',
+      '/story_conflict_types': 'Conflicts: character vs self, character vs character, character vs society, character vs nature, character vs technology, character vs fate.',
+      '/setting_in_story': 'Setting covers time, place, environment, culture. Describe sensory details that influence characters.',
+      '/story_climax': 'Climax is the turning point of highest tension where the central conflict peaks.',
+      '/story_resolution': 'Resolution shows the outcome of the conflict and ties up loose ends; sometimes called denouement.',
+      '/story_analysis_steps': '1) Read closely. 2) Identify elements. 3) Examine symbolism. 4) Evaluate theme. 5) Conclude impact on readers.',
+      '/modern_stories': 'Modern stories: Jhumpa Lahiri’s “Interpreter of Maladies,” Raymond Carver’s “Cathedral,” Chimamanda Adichie’s “Apollo.”',
+      '/classic_stories': 'Classics: “Rip Van Winkle,” “The Tell-Tale Heart,” “The Necklace,” “Siddhartha’s Quest.”',
+      '/creative_story_writing': 'Guide: brainstorm premise, outline conflict, develop characters, draft quickly, revise for clarity, check pacing and dialogue.',
+      '/define_novel': 'A novel is an extended fictional narrative in prose focusing on character development and complex plots.',
+      '/types_of_novel': 'Genres: bildungsroman, historical, mystery, fantasy, science fiction, realist, epistolary, dystopian, romance.',
+      '/famous_novelists': 'Notable novelists: George Eliot, Leo Tolstoy, Fyodor Dostoevsky, Toni Morrison, Arundhati Roy, Haruki Murakami.',
+      '/elements_of_novel': 'Elements include plot structure, characters, setting, point of view, theme, conflict, style.',
+      '/novel_plot_analysis': 'Track major plot arcs: inciting incident, rising action, climax, falling action, resolution; note subplots.',
+      '/novel_character_analysis': 'Assess protagonists, antagonists, dynamic vs static characters, motivations, growth, relationships.',
+      '/novel_theme_analysis': 'Identify key ideas (identity, society, power) and analyze how recurring motifs support them.',
+      '/famous_novels_summary': 'Examples: “To Kill a Mockingbird” explores racial justice; “1984” warns against totalitarian control; “Pride and Prejudice” critiques class and marriage.',
+      '/novel_quiz': 'Quiz questions: match authors to novels, define narrative viewpoint, explain symbolism in a chosen excerpt.',
+      '/classic_vs_modern_novel': 'Classic novels often focus on social norms and detailed narration; modern novels may experiment with structure, voice, and themes like identity and globalization.',
+      '/novel_writing_tips': 'Tips: design layered characters, outline plot arcs, maintain consistent POV, weave subplots, revise multiple drafts.',
+      '/novel_conflict': 'Conflicts include internal (character vs self) and external (character vs character/society/nature/technology).',
+      '/novel_setting': 'Setting shapes mood and culture; analyze time period, location, social environment, historical context.',
+      '/literary_devices_in_novel': 'Devices: foreshadowing, flashback, symbolism, irony, motif, imagery, unreliable narrator.',
+      '/novel_excerpts': 'Study short passages from novels to analyze style—e.g., opening of “Middlemarch” or “The Catcher in the Rye.”',
+      '/analyze_narrator': 'Evaluate narrator type (first-person, third-person limited/omniscient), reliability, bias, and perspective.',
+      '/novel_summary_short': 'Provide 3-4 sentence summaries focusing on protagonist, conflict, key events, conclusion.',
+      '/novel_essay_topics': 'Essay ideas: social criticism in “Hard Times,” memory and trauma in “Beloved,” symbolism of setting in “The Great Gatsby.”',
+      '/modern_novels': 'Modern novels: “The Night Circus,” “Homegoing,” “The Testaments,” “The Shadow Lines,” “The Luminaries.”',
+      '/classic_novels': 'Classic novels: “Great Expectations,” “Anna Karenina,” “Wuthering Heights,” “Don Quixote,” “Jane Eyre.”',
+      '/ielts_overview': 'IELTS assesses listening, reading, writing, speaking on a 0–9 band scale (Academic or General Training).',
+      '/ielts_listening_tips': 'Tips: preview questions, note keywords, focus on paraphrases, watch for distractors, check spelling.',
+      '/ielts_reading_tips': 'Use skimming for gist, scanning for details, underline keywords, manage roughly 20 minutes per passage.',
+      '/ielts_writing_tips': 'Task 1: analyze visuals, overview key trends. Task 2: answer prompt directly, use clear paragraphs, support arguments.',
+      '/ielts_speaking_tips': 'Stay fluent, expand answers, use linking phrases, practice part 2 monologues with structure, vary vocabulary.',
+      '/ielts_sample_questions': 'Example: Describe a book you recently read (Speaking). Summarize data from a chart (Writing Task 1). Discuss advantages/disadvantages of online learning (Task 2).',
+      '/ielts_score_criteria': 'Band descriptors assess task response, coherence/cohesion, lexical resource, grammatical range/accuracy, pronunciation for speaking.',
+      '/ielts_task1_examples': 'Describe line graphs, bar charts, maps, processes. Mention significant trends and comparisons in 150 words.',
+      '/ielts_task2_examples': 'Essay types: opinion, discussion, problem-solution, advantages/disadvantages. Example: “Some believe university should be free—discuss both views.”',
+      '/ielts_vocabulary': 'Useful sets: trend verbs (increase, fluctuate), academic connectors (moreover, however), speaking fillers (to be honest, in my view).',
+      '/ielts_grammar_tips': 'Use complex sentences with relative clauses, conditionals, and range of tenses. Check subject-verb agreement and article use.',
+      '/ielts_pronunciation_tips': 'Focus on sentence stress, clear vowel sounds, and intonation patterns. Record mock interviews for feedback.',
+      '/ielts_mock_test': 'Create full practice: 30-minute listening audio, 60-minute reading passage set, writing tasks (60 minutes), speaking interview with partner.',
+      '/ielts_common_errors': 'Pitfalls: memorized answers, exceeding word limit without structure, missing overview in Task 1, pausing too long in speaking.',
+      '/ielts_time_management': 'Listening: follow section transitions. Reading: move on if stuck. Writing: 20 minutes Task 1, 40 minutes Task 2. Speaking: pace answers but avoid rushing.',
+      '/ielts_reading_strategies': 'Identify question types (T/F/NG, matching headings). Use skimming, scanning, and note synonyms.',
+      '/ielts_listening_practice': 'Use official Cambridge tests, IELTS podcasts, British Council recordings; replay to check missed answers.',
+      '/ielts_speaking_practice': 'Record yourself on part 2 topics, join speaking clubs, practice follow-up questions to extend responses.',
+      '/ielts_writing_task_examples': 'Study high-band sample essays noting structure, vocabulary, and expansion of ideas.',
+      '/ielts_preparation_plan': 'Plan: 12-week schedule with weekly full tests, daily vocabulary, alternating skill focus, reflection after each mock.',
+      '/sat_overview': 'SAT measures evidence-based reading and writing plus math, scored 400–1600. Optional essay removed in most locations.',
+      '/sat_math_tips': 'Review algebra, problem solving, data analysis, basic trigonometry. Use official practice tests, memorize key formulas.',
+      '/sat_reading_tips': 'Read actively, annotate main ideas, predict answers before viewing choices, watch for inference questions.',
+      '/sat_writing_tips': 'Target grammar rules: subject-verb agreement, pronouns, modifiers, punctuation, parallelism. Practice editing passages.',
+      '/sat_essay_tips': 'If taking essay, analyze argument structure, evidence, reasoning, persuasive techniques; write intro, body, conclusion.',
+      '/sat_vocabulary': 'Focus on Tier 2 academic words and context clues. Create flashcards for high-frequency terms.',
+      '/sat_practice_questions': 'Practice: College Board official questions, Khan Academy drills, mix of reading, writing, math problems.',
+      '/sat_score_explanation': 'Each section scored 200–800. Reading & Writing combined, Math separate. Percentiles show relative performance.',
+      '/sat_time_management': 'Reading: ~13 minutes per passage set. Writing: 35 minutes for 44 questions. Math (no calc): 25 minutes, (with calc): 55 minutes.',
+      '/sat_reading_strategies': 'Skim passage for structure, answer easier questions first, refer back to line references precisely.',
+      '/sat_grammar_tips': 'Know punctuation rules, verb tense consistency, pronoun clarity, idioms, comparison structures.',
+      '/sat_math_practice': 'Complete mixed-topic sets, review mistakes, memorize shortcuts, practice grid-ins carefully.',
+      '/sat_essay_examples': 'Study sample essays scoring 4/4/4 to see strong thesis, varied evidence, sophisticated vocabulary.',
+      '/sat_common_errors': 'Common issues: rushing through reading passages, misreading graphs, ignoring unit conversions, leaving blanks.',
+      '/sat_mock_test': 'Schedule full-length digital or paper practice under test conditions, then analyze results question by question.',
+      '/sat_data_analysis': 'Practice interpreting tables, charts, scatterplots; focus on unit rates, percentages, proportional reasoning.',
+      '/sat_critical_reading': 'Identify author purpose, tone, and evidence; understand paired passages relationships.',
+      '/sat_problem_solving': 'Use back-solving, plugging numbers, and estimation to check work; underline key data.',
+      '/sat_test_day_tips': 'Rest well, eat balanced breakfast, arrive early, bring admission ticket, photo ID, calculator, spare batteries.',
+      '/sat_preparation_plan': 'Plan: 10-12 weeks with baseline test, weekly practice sections, alternating reading/math focus, review sessions, final two full mocks.'
+    };
+
+    function parseCommand(rawInput){
+      const trimmed = rawInput.trim();
+      if(!trimmed.startsWith('/')){
+        return null;
+      }
+      const firstToken = trimmed.split(/\s+/)[0].toLowerCase();
+      return firstToken;
+    }
+
+    const englishKnowledge = [
+      {
+        title: 'speaking practice',
+        keywords: ['speak', 'speaking', 'fluency', 'pronunciation', 'accent'],
+        reply: () => [
+          'Strengthen spoken English by:',
+          '• Shadowing native audio daily for intonation and rhythm.',
+          '• Recording yourself and comparing against transcripts.',
+          '• Joining conversational clubs or language exchanges (even online).',
+          '• Rotating between storytelling, debate, and summarizing exercises.',
+          '• Tracking new phrases in a speaking journal and recycling them in conversation.'
+        ].join('\n')
+      },
+      {
+        title: 'listening skills',
+        keywords: ['listening', 'podcast', 'audio', 'comprehension'],
+        reply: () => 'Build listening comprehension with graded podcasts (BBC Learning English, Voice of America), note keywords while listening once, then relisten to confirm details. Finish by paraphrasing what you heard.'
+      },
+      {
+        title: 'reading strategies',
+        keywords: ['reading', 'extensive', 'intensive', 'novel'],
+        reply: () => 'Blend extensive reading (novels, news you enjoy) with intensive reading (academic passages, exam texts). Annotate vocabulary in context and summarize each section in your own words.'
+      },
+      {
+        title: 'writing improvement',
+        keywords: ['writing', 'essay', 'composition', 'paragraph'],
+        reply: () => [
+          'For stronger English writing:',
+          '1. Outline: thesis, topic sentences, evidence.',
+          '2. Draft quickly without perfect grammar.',
+          '3. Revise for coherence—check transitions and pronoun reference.',
+          '4. Use tools like Purdue OWL or Grammarly for feedback, but learn from the corrections.'
+        ].join('\n')
+      },
+      {
+        title: 'grammar support',
+        keywords: ['grammar', 'tense', 'parts of speech', 'articles', 'preposition'],
+        reply: () => 'Focus on core systems: verb tenses, subject-verb agreement, articles, conditionals. Create a mistake log—note the incorrect sentence, the rule, and a corrected version. Test yourself weekly with short quizzes.'
+      },
+      {
+        title: 'conditional sentences',
+        keywords: ['conditional sentence', 'conditionals', 'if clause', 'zero conditional', 'first conditional', 'second conditional', 'third conditional', 'mixed conditional'],
+        reply: () => [
+          'English conditional sentence types:',
+          '• Zero conditional: facts/general truths. Form: If + present simple, present simple. Example: If you heat water to 100°C, it boils.',
+          '• First conditional: real future possibilities. Form: If + present simple, will + base verb. Example: If she studies hard, she will pass the exam.',
+          '• Second conditional: unreal/imaginary present or future. Form: If + past simple, would + base verb. Example: If I had more time, I would join the English club.',
+          '• Third conditional: unreal past situations. Form: If + past perfect, would have + past participle. Example: If they had practiced earlier, they would have spoken more confidently.',
+          '• Mixed conditional: past condition with present result (or vice versa). Example: If I had taken the teaching course (past), I would be a teacher now (present).'
+        ].join('\\n')
+      },
+      {
+        title: 'vocabulary building',
+        keywords: ['vocabulary', 'lexis', 'words', 'phrases', 'phrasal'],
+        reply: () => 'Learn vocabulary in chunks: collocations (“make an effort”), phrasal verbs, academic word lists. Use spaced-repetition flashcards (Anki, Quizlet) and apply new words in sentences immediately.'
+      },
+      {
+        title: 'english literature',
+        keywords: ['literature', 'poetry', 'novel', 'drama', 'short story'],
+        reply: () => 'English literature spans Chaucer to contemporary voices. Explore periods: Renaissance drama (Shakespeare, Marlowe), Romantic poetry (Wordsworth, Keats), Victorian novels (Austen, Dickens), postcolonial writers (Adichie, Rushdie). Consider themes, historical context, and stylistic devices.'
+      },
+      {
+        title: 'english education in nepal',
+        keywords: ['nepal', 'nepali', 'english education in nepal'],
+        reply: () => [
+          'English education in Nepal features:',
+          '• Primary level: English introduced from Grade 1 in most schools.',
+          '• Secondary: English is a compulsory subject through Grade 10 with SEE exams.',
+          '• Higher education: Many bachelor programs use English as the medium of instruction.',
+          'Challenges include limited resources in rural areas, teacher training gaps, and balancing English with local languages.',
+          'Initiatives by the Ministry of Education and NGOs aim to boost teacher development, digital access, and learner motivation.'
+        ].join('\n')
+      },
+      {
+        title: 'global english education',
+        keywords: ['english education in the world', 'global english', 'esl worldwide', 'eap'],
+        reply: () => [
+          'Worldwide, English education varies:',
+          '• Europe: CEFR-aligned curricula, emphasis on communicative competence.',
+          '• Asia: High-stakes exams (IELTS, TOEFL) drive instruction; CLIL (Content and Language Integrated Learning) is growing.',
+          '• Africa: English often acts as an official language; teacher support and materials remain key issues.',
+          '• Online: MOOCs, virtual exchanges, and AI tutors expand access.',
+          'Trend: focus on intercultural communication, critical thinking, and digital literacy within English classrooms.'
+        ].join('\n')
+      },
+      {
+        title: 'english teaching methods',
+        keywords: ['teaching method', 'tesol', 'tefl', 'classroom', 'methodology'],
+        reply: () => [
+          'Effective English teaching blends methods:',
+          '• Communicative Language Teaching for interaction.',
+          '• Task-Based Learning to simulate real-life use.',
+          '• Lexical Approach to focus on collocations.',
+          '• Differentiated instruction for mixed proficiency.',
+          'Include formative assessment, reflective journaling, and culturally responsive materials.'
+        ].join('\n')
+      },
+      {
+        title: 'learning roadmap',
+        keywords: ['learn english', 'learning english', 'improve english', 'study english', 'english learning'],
+        reply: () => [
+          'Build your English roadmap:',
+          '1. Diagnose level: take a CEFR self-assessment or placement test.',
+          '2. Set 90-day goals for each skill and track them weekly.',
+          '3. Assign daily micro-activities: e.g., 15-minute podcast + transcript, 10 new words applied in sentences, 5 discussion questions answered aloud.',
+          '4. Schedule weekly review sessions to recycle vocabulary and grammar.',
+          '5. Every month, complete a mock speaking or writing task and reflect on progress.'
+        ].join('\n')
+      },
+      {
+        title: 'english exam prep',
+        keywords: ['ielts', 'toefl', 'pte', 'exam', 'test preparation', 'english exam'],
+        reply: (input) => {
+          if(input.includes('ielts')){
+            return [
+              'IELTS preparation roadmap:',
+              '• Listening: practice Cambridge past tests, note distractors.',
+              '• Reading: skim for gist, scan for details, manage time per passage (~20 minutes).',
+              '• Writing: memorize task 1 structures (overview + comparisons) and task 2 templates for opinion/discussion essays.',
+              '• Speaking: rehearse 2-minute Part 2 monologues with clear structure (intro, point, example, conclusion).',
+              'Schedule weekly mock tests and review band descriptors.'
+            ].join('\n');
+          }
+          return 'Set a study calendar with weekly mock tests, review official scoring rubrics, and rotate skills (listening, reading, writing, speaking) daily. Analyze errors to adjust strategy.';
+        }
+      },
+      {
+        title: 'english for specific purposes',
+        keywords: ['academic english', 'business english', 'esp', 'english for specific purposes'],
+        reply: () => 'Identify domain vocabulary (academic, business, medical), practice genre-specific writing (reports, lab write-ups), and simulate authentic tasks like presentations or negotiations.'
+      },
+      {
+        title: 'motivation and mindset',
+        keywords: ['motivation', 'confidence', 'fear', 'anxiety'],
+        reply: () => 'To stay motivated, set SMART English goals, celebrate micro-progress, use growth-mindset affirmations, and rotate enjoyable input (songs, films) with deliberate practice.'
+      },
+      {
+        title: 'thanks',
+        keywords: ['thanks', 'thank you'],
+        reply: () => 'You\'re welcome! Keep exploring English and let me know what you need next.'
+      },
+      {
+        title: 'greeting',
+        keywords: ['hello', 'hi', 'hey', 'good morning', 'good evening'],
+        reply: () => 'Hello! Ask me anything about English learning, teaching, exams, grammar, or literature.'
+      },
+      {
+        title: 'identity',
+        keywords: ['your name', 'who are you', 'what are you'],
+        reply: () => 'I\'m Aurora, focused entirely on English language education and related guidance.'
+      }
+    ];
+
+    const englishCoreSignals = ['english', 'ielts', 'toefl', 'pte', 'exam', 'study', 'education', 'grammar', 'vocabulary', 'literature', 'teach', 'teacher', 'nepal', 'esl', 'eap'];
+
+    function escapeRegExp(str){
+      return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function scoreEntry(entry, input){
+      let score = 0;
+
+      entry.keywords.forEach(keyword => {
+        const phrasePattern = new RegExp(`\\b${escapeRegExp(keyword)}\\b`, 'i');
+        if(phrasePattern.test(input)){
+          score += keyword.split(' ').length * 2;
+          return;
+        }
+
+        if(keyword.includes(' ')){
+          const parts = keyword.split(' ');
+          const hits = parts.filter(part => new RegExp(`\\b${escapeRegExp(part)}\\b`, 'i').test(input)).length;
+          if(hits){
+            score += hits * 0.8;
+          }
+        }else if(input.includes(keyword)){
+          score += 0.9;
+        }
+      });
+
+      return score;
+    }
+
+    function bestKnowledgeMatch(input){
+      let best = null;
+      let bestScore = 0;
+
+      englishKnowledge.forEach(entry => {
+        const score = scoreEntry(entry, input);
+        if(score > bestScore){
+          best = entry;
+          bestScore = score;
+        }
+      });
+
+      return bestScore >= 1 ? best : null;
+    }
+
+    function generalEnglishFallback(rawInput){
+      const intro = 'Here are some all-round ways to strengthen your English:';
+      const body = [
+        '• Practice all four skills weekly (listening, speaking, reading, writing) with specific tasks.',
+        '• Keep a vocabulary notebook organised by theme and function.',
+        '• Review grammar patterns in context, then create mini dialogues that use them.',
+        '• Teach someone else what you have learned—explaining concepts cements mastery.',
+        '• Rotate resources: books, podcasts, MOOCs, newspapers, and exam papers.'
+      ];
+      return `${intro}\n${body.join('\n')}\nIf you have a more specific English topic, let me know so I can tailor suggestions.`;
+    }
+
+    function outOfDomainFallback(rawInput){
+      return [
+        `I focus on English-related questions. I\'m not sure how “${rawInput}” connects.`,
+        'Ask about grammar, literature, teaching methodologies, exams, or English education in Nepal and worldwide.'
+      ].join(' ');
+    }
+
+    function getBotResponse(rawInput){
+      const command = parseCommand(rawInput);
+      if(command){
+        if(Object.prototype.hasOwnProperty.call(commandResponses, command)){
+          return commandResponses[command];
+        }
+        return `I don\'t have a guide for the command “${command}”. Try another English command or ask in plain language.`;
+      }
+
+      const input = normalize(rawInput);
+      const match = bestKnowledgeMatch(input);
+
+      if(match){
+        return typeof match.reply === 'function' ? match.reply(input) : match.reply;
+      }
+
+      if(input.length <= 3){
+        return 'Could you share more detail about the English topic you have in mind?';
+      }
+
+      if(englishCoreSignals.some(signal => input.includes(signal))){
+        return generalEnglishFallback(rawInput);
+      }
+
+      return outOfDomainFallback(rawInput);
+    }
+
+    function randomPick(list){
+      return list[Math.floor(Math.random() * list.length)];
+    }
+
+    function simulateBotResponse(userMessage){
+      toggleTypingIndicator(true);
+      sendButton.disabled = true;
+
+      const latency = 420 + Math.random() * 900;
+
+      setTimeout(() => {
+        const reply = getBotResponse(userMessage);
+        appendMessage('bot', reply);
+        toggleTypingIndicator(false);
+        sendButton.disabled = false;
+        userInput.focus();
+      }, latency);
+    }
+
+    function handleSubmit(optionalPrefilled){
+      const message = typeof optionalPrefilled === 'string' ? optionalPrefilled.trim() : userInput.value.trim();
+      if(!message){
+        return;
+      }
+
+      appendMessage('user', message);
+      userInput.value = '';
+      simulateBotResponse(message);
+    }
+
+    chatForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      handleSubmit();
+    });
+
+    resetChat.addEventListener('click', () => {
+      messageList.innerHTML = '';
+      initializeConversation();
+      userInput.focus();
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      const isActive = document.visibilityState === 'visible';
+      const chip = document.querySelector('.status-chip');
+      if(chip){
+        chip.textContent = isActive ? 'Online' : 'Away';
+        chip.prepend(document.createElement('span'));
+      }
+    });
+
+    seedQuickReplies();
+    initializeConversation();
+  </script>
+</body>
+</html>
