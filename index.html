@@ -371,6 +371,102 @@
       color:var(--accent);
     }
 
+    .toolbar .inline{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      background:rgba(148,163,184,0.12);
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:12px;
+      padding:6px 10px;
+    }
+
+    .toolbar select{
+      background:transparent;
+      color:var(--text-secondary);
+      border:none;
+      outline:none;
+      font-size:12px;
+    }
+
+    .read-btn{
+      position:absolute;
+      right:16px;
+      bottom:96px;
+      width:46px;
+      height:46px;
+      border-radius:50%;
+      border:1px solid rgba(255,255,255,0.12);
+      background:linear-gradient(135deg,#38bdf8,#22d3ee);
+      color:#0f172a;
+      box-shadow:0 14px 28px rgba(56,189,248,0.35);
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:20px;
+      transition:transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    }
+
+    .read-btn:hover{
+      transform:translateY(-2px);
+      box-shadow:0 18px 36px rgba(56,189,248,0.5);
+    }
+
+    .read-btn--playing{
+      background:linear-gradient(135deg,#f97316,#ef4444);
+      color:#fff;
+      box-shadow:0 16px 34px rgba(239,68,68,0.45);
+      animation:pulse 1.2s ease-in-out infinite;
+    }
+
+    @keyframes pulse{
+      0%{ transform:translateY(-0px) scale(1); }
+      50%{ transform:translateY(-1px) scale(1.06); }
+      100%{ transform:translateY(-0px) scale(1); }
+    }
+
+    .accent-select{
+      position:absolute;
+      right:16px;
+      bottom:150px;
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      background:#000;
+      backdrop-filter:blur(8px);
+      border:1px solid rgba(255,255,255,0.12);
+      color:#fff;
+      padding:6px 10px;
+      border-radius:12px;
+      box-shadow:0 8px 22px rgba(0,0,0,0.25);
+      font-size:12px;
+    }
+    .accent-select select{
+      background:#000;
+      color:#fff;
+      border:none;
+      outline:none;
+      font-size:12px;
+    }
+    .accent-select .ticker{
+      display:inline-block;
+      min-width:88px;
+      font-weight:600;
+      color:#fff;
+      letter-spacing:0.2px;
+      opacity:0.9;
+      transition:opacity .25s ease, transform .25s ease;
+    }
+    .accent-select .ticker.fade{
+      opacity:0;
+      transform:translateY(-6px);
+    }
+    .accent-select select option{
+      background:#000;
+      color:#fff;
+    }
+
     @keyframes fadeUp{
       from{
         opacity:0;
@@ -427,6 +523,11 @@
 
     <footer class="chat-footer">
       <div class="toolbar">
+        <span class="inline">
+          <label for="ttsToggle">Speak</label>
+          <input type="checkbox" id="ttsToggle" aria-label="Toggle voice for bot replies"/>
+          <select id="voiceSelect" aria-label="Voice selection"></select>
+        </span>
         <button type="button" id="resetChat" aria-label="Clear conversation history">Reset chat</button>
       </div>
       <div class="suggestions" id="quickReplies" aria-label="Quick prompts">
@@ -438,6 +539,19 @@
     </footer>
   </main>
 
+  <button id="readChatBtn" class="read-btn" title="Read conversation aloud" aria-label="Read conversation">🔊</button>
+  <div class="accent-select" aria-label="Accent selection">
+    <span>Accent</span>
+    <span id="accentTicker" class="ticker" aria-hidden="true">British</span>
+    <select id="accentSelect" aria-label="Choose accent">
+      <option value="auto">Auto</option>
+      <option value="en-GB">British</option>
+      <option value="en-US">American</option>
+      <option value="en-AU">Australian</option>
+      <option value="en-CA">Canadian</option>
+    </select>
+  </div>
+
   <script>
     const messageList = document.getElementById('messageList');
     const typingIndicator = document.getElementById('typingIndicator');
@@ -446,6 +560,136 @@
     const sendButton = document.getElementById('sendButton');
     const resetChat = document.getElementById('resetChat');
     const quickReplies = document.getElementById('quickReplies');
+    const ttsToggle = document.getElementById('ttsToggle');
+    const voiceSelect = document.getElementById('voiceSelect');
+    const readChatBtn = document.getElementById('readChatBtn');
+    const accentSelect = document.getElementById('accentSelect');
+
+    // --- Text-to-Speech (TTS) setup ---
+    const synth = window.speechSynthesis;
+    let availableVoices = [];
+    function populateVoices(){
+      availableVoices = synth.getVoices();
+      voiceSelect.innerHTML = '';
+      const englishVoices = availableVoices.filter(v => /en(-|_|\\b)/i.test(v.lang));
+      const list = englishVoices.length ? englishVoices : availableVoices;
+      list.forEach((v, i) => {
+        const opt = document.createElement('option');
+        opt.value = v.name;
+        opt.textContent = `${v.name} (${v.lang})`;
+        voiceSelect.appendChild(opt);
+      });
+      if(list.length){
+        voiceSelect.value = list[0].name;
+      }
+    }
+    populateVoices();
+    if(typeof speechSynthesis !== 'undefined'){
+      speechSynthesis.onvoiceschanged = populateVoices;
+    }
+    // animated accent ticker
+    const accentTicker = document.getElementById('accentTicker');
+    const tickerTexts = ['British','American','Australian','Canadian'];
+    let tickerIndex = 0;
+    function rotateTicker(){
+      if(!accentTicker) return;
+      accentTicker.classList.add('fade');
+      setTimeout(()=>{
+        tickerIndex = (tickerIndex + 1) % tickerTexts.length;
+        accentTicker.textContent = tickerTexts[tickerIndex];
+        accentTicker.classList.remove('fade');
+      }, 230);
+    }
+    setInterval(rotateTicker, 2200);
+    function pickByGender(voices, preferFemale){
+      const femaleHints = ['female','woman','girl','samantha','zoe','serena','clara','hazel','lisa','emma','amy','joanna','jenny','aria'];
+      const maleHints = ['male','man','boy','daniel','michael','guy','andrew','matthew','brandon','brian','justin','joey','christopher'];
+      const hints = preferFemale ? femaleHints : maleHints;
+      // strong hint match
+      let v = voices.find(v => hints.some(h => v.name.toLowerCase().includes(h)));
+      if(v) return v;
+      // softer: last-resort pick first
+      return voices[0] || null;
+    }
+
+    function pickVoice(preferredAccentCode){
+      if(!availableVoices.length) return null;
+      if(preferredAccentCode && preferredAccentCode !== 'auto'){
+        // try exact lang match first
+        const langMatches = availableVoices.filter(v => v.lang && v.lang.toLowerCase().startsWith(preferredAccentCode.toLowerCase()));
+        if(langMatches.length){
+          // Gender preference: British(en-GB) & Canadian(en-CA) -> female, others -> male
+          const preferFemale = ['en-gb','en-ca'].includes(preferredAccentCode.toLowerCase());
+          const chosen = pickByGender(langMatches, preferFemale);
+          if(chosen) return chosen;
+        }
+        // try language family match (e.g., en-GB vs en_GB)
+        const famMatches = availableVoices.filter(v => v.lang && v.lang.replace('_','-').toLowerCase().startsWith(preferredAccentCode.toLowerCase()));
+        if(famMatches.length){
+          const preferFemale = ['en-gb','en-ca'].includes(preferredAccentCode.toLowerCase());
+          const chosen = pickByGender(famMatches, preferFemale);
+          if(chosen) return chosen;
+        }
+        // try by name containing region keywords
+        const map = {
+          'en-GB': ['UK','British','England','Britain'],
+          'en-US': ['US','American'],
+          'en-AU': ['AU','Australian'],
+          'en-CA': ['CA','Canadian']
+        };
+        const hints = map[preferredAccentCode] || [];
+        const hintMatches = availableVoices.filter(v => hints.some(h => v.name.toLowerCase().includes(h.toLowerCase())));
+        if(hintMatches.length){
+          const preferFemale = ['en-GB','en-CA'].includes(preferredAccentCode) || ['en-gb','en-ca'].includes(preferredAccentCode.toLowerCase());
+          const chosen = pickByGender(hintMatches, preferFemale);
+          if(chosen) return chosen;
+        }
+      }
+      // fallback to toolbar voiceSelect if available
+      const chosenByToolbar = availableVoices.find(v => v.name === voiceSelect.value);
+      if(chosenByToolbar) return chosenByToolbar;
+      // fallback to first English voice else first voice
+      return availableVoices.find(v => /^en[\-_]/i.test(v.lang)) || availableVoices[0];
+    }
+
+    function speak(text){
+      if(!ttsToggle.checked || !text || !window.speechSynthesis) return;
+      const utter = new SpeechSynthesisUtterance(text);
+      const chosen = pickVoice(accentSelect.value);
+      if(chosen) utter.voice = chosen;
+      utter.rate = 1;
+      utter.pitch = 1;
+      speechSynthesis.cancel();
+      speechSynthesis.speak(utter);
+    }
+    let readingUtterance = null;
+    function resetReadButton(){
+      readChatBtn.classList.remove('read-btn--playing');
+      readChatBtn.textContent = '🔊';
+      readChatBtn.setAttribute('aria-pressed','false');
+      readChatBtn.title = 'Read conversation';
+    }
+    function setPlayingButton(){
+      readChatBtn.classList.add('read-btn--playing');
+      readChatBtn.textContent = '⏹️';
+      readChatBtn.setAttribute('aria-pressed','true');
+      readChatBtn.title = 'Stop reading';
+    }
+    function speakForce(text){
+      if(!text || !window.speechSynthesis) return;
+      if(window.speechSynthesis.speaking){
+        window.speechSynthesis.cancel();
+      }
+      readingUtterance = new SpeechSynthesisUtterance(text);
+      const chosen = pickVoice(accentSelect.value);
+      if(chosen) readingUtterance.voice = chosen;
+      readingUtterance.rate = 1;
+      readingUtterance.pitch = 1;
+      readingUtterance.onend = () => { resetReadButton(); };
+      readingUtterance.onerror = () => { resetReadButton(); };
+      setPlayingButton();
+      window.speechSynthesis.speak(readingUtterance);
+    }
 
     const quickReplyOptions = [
       '/define_noun',
@@ -1014,6 +1258,7 @@
       setTimeout(() => {
         const reply = getBotResponse(userMessage);
         appendMessage('bot', reply);
+        speak(reply);
         toggleTypingIndicator(false);
         sendButton.disabled = false;
         userInput.focus();
@@ -1040,6 +1285,31 @@
       messageList.innerHTML = '';
       initializeConversation();
       userInput.focus();
+    });
+
+    // --- Read entire conversation aloud ---
+    function collectConversation(){
+      const bubbles = Array.from(messageList.querySelectorAll('.bubble'));
+      const parts = bubbles.map(b => {
+        // First child node contains text content before <time>
+        const firstNode = b.childNodes[0];
+        const text = firstNode && firstNode.nodeType === Node.TEXT_NODE ? firstNode.textContent : b.textContent;
+        return (text || '').trim();
+      }).filter(Boolean);
+      return parts.join('. ');
+    }
+    readChatBtn.addEventListener('click', () => {
+      if(window.speechSynthesis && window.speechSynthesis.speaking){
+        window.speechSynthesis.cancel();
+        resetReadButton();
+        return;
+      }
+      const full = collectConversation();
+      if(!full){
+        speakForce('The conversation is empty.');
+        return;
+      }
+      speakForce(full);
     });
 
     document.addEventListener('visibilitychange', () => {
