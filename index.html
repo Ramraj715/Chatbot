@@ -652,9 +652,23 @@
       return availableVoices.find(v => /^en[\-_]/i.test(v.lang)) || availableVoices[0];
     }
 
+    function cleanForSpeech(text){
+      if(!text) return '';
+      let t = text;
+      // Remove/replace symbols that should not be spoken literally
+      t = t.replace(/[\/\\\-–—_:;,•·|#*+=<>()\[\]{}"“”‘’]/g, ' ');
+      // Replace multiple dots with pause
+      t = t.replace(/\.{2,}/g, '. ');
+      // Collapse multiple spaces
+      t = t.replace(/\s+/g, ' ').trim();
+      return t;
+    }
+
     function speak(text){
       if(!ttsToggle.checked || !text || !window.speechSynthesis) return;
-      const utter = new SpeechSynthesisUtterance(text);
+      const cleaned = cleanForSpeech(text);
+      if(!cleaned) return;
+      const utter = new SpeechSynthesisUtterance(cleaned);
       const chosen = pickVoice(accentSelect.value);
       if(chosen) utter.voice = chosen;
       utter.rate = 1;
@@ -677,10 +691,12 @@
     }
     function speakForce(text){
       if(!text || !window.speechSynthesis) return;
+      const cleaned = cleanForSpeech(text);
+      if(!cleaned) return;
       if(window.speechSynthesis.speaking){
         window.speechSynthesis.cancel();
       }
-      readingUtterance = new SpeechSynthesisUtterance(text);
+      readingUtterance = new SpeechSynthesisUtterance(cleaned);
       const chosen = pickVoice(accentSelect.value);
       if(chosen) readingUtterance.voice = chosen;
       readingUtterance.rate = 1;
@@ -692,26 +708,19 @@
     }
 
     const quickReplyOptions = [
-      '/define_noun',
+      '/alphabets',
+      '/consonant_sounds',
+      '/vowel_sounds_detailed',
+      '/verb',
       '/types_of_verbs',
-      '/tense_explanation',
-      '/articles_usage',
-      '/conditional_sentences',
-      '/voice_chart',
-      '/literary_periods',
-      '/poetic_devices',
-      '/types_of_drama',
-      '/vowel_sounds',
-      '/nepali_vowels',
-      '/story_elements',
-      '/types_of_novel',
-      '/ielts_preparation_plan',
-      '/sat_preparation_plan',
-      'Give me English grammar tips',
-      'Explain English education in Nepal',
-      'How can I improve spoken English?',
-      'Suggest literature essay topics',
-      'Provide pronunciation tips'
+      '/sentence',
+      '/types_of_sentence',
+      '/tense',
+      '/tense_table',
+      '/voice_intro',
+      '/voice_structures',
+      '/narration',
+      '/narration_table'
     ];
 
     const openingMessage = [
@@ -787,209 +796,19 @@
     }
 
     const commandResponses = {
-      '/define_noun': 'A noun names a person, place, thing, or idea.\nExamples: teacher, Kathmandu, laptop, freedom.',
-      '/define_verb': 'A verb expresses an action, occurrence, or state of being.\nExamples: run, think, become, is.',
-      '/define_adjective': 'An adjective describes or modifies a noun or pronoun by giving more detail.\nExamples: bright, courageous, Nepali, three.',
-      '/define_adverb': 'An adverb modifies a verb, adjective, or another adverb, often showing manner, time, place, or degree.\nExamples: quickly, quite, here, yesterday.',
-      '/define_pronoun': 'A pronoun replaces a noun to avoid repetition.\nExamples: he, she, it, they, which, someone.',
-      '/define_preposition': 'A preposition shows the relationship between a noun/pronoun and another word in the sentence.\nExamples: on, between, during, without.',
-      '/define_conjunction': 'A conjunction links words, phrases, or clauses.\nCoordinating: and, but, or. Subordinating: because, although, unless.',
-      '/define_interjection': 'An interjection expresses sudden feeling or emotion and often stands alone.\nExamples: Wow!, Oh no!, Hurray!, Alas!',
-      '/types_of_nouns': 'Common vs proper, concrete vs abstract, countable vs uncountable, collective, compound, and possessive nouns.\nExamples: city (common), Kathmandu (proper), team (collective).',
-      '/types_of_verbs': 'Main, auxiliary, linking, transitive, intransitive, regular, irregular, modal verbs.\nExamples: run (main), have (auxiliary), seem (linking), can (modal).',
-      '/conditional_sentences': 'Conditional sentence types:\n• Zero Conditional: If + present simple, present simple (facts). “If water reaches 100°C, it boils.”\n• First Conditional: If + present simple, will + base verb (real future). “If it rains, we will cancel the trip.”\n• Second Conditional: If + past simple, would + base verb (unlikely present/future). “If I had more time, I would join your class.”\n• Third Conditional: If + past perfect, would have + past participle (past unreal). “If she had studied, she would have passed.”\n• Mixed Conditional: combines second + third to show past condition with present result or vice versa. “If I had taken the job, I would be living abroad now.”\n\nConditional table:\nType                         | Structure                                   | Example                                                        | Use / Meaning\n-----------------------------|---------------------------------------------|----------------------------------------------------------------|----------------------------------------------\nZero Conditional              | If + present simple, present simple         | If you heat water, it boils.                                   | General truths, scientific facts\nFirst Conditional             | If + present simple, will + base verb       | If it rains, I will take an umbrella.                          | Real possibility in the future\nSecond Conditional            | If + past simple, would + base verb         | If I won the lottery, I would buy a house.                     | Unreal or hypothetical present/future\nThird Conditional             | If + past perfect, would have + past part.  | If she had studied, she would have passed the exam.            | Unreal past; regrets or hypotheticals\nMixed Conditional (Type 1+3)  | If + past perfect, would + base verb        | If he had trained, he would be fit now.                        | Past condition affecting present result\nMixed Conditional (Type 2+3)  | If + past simple, would have + past part.   | If I were taller, I would have joined the basketball team.     | Present/future condition affecting past result',
-      '/voice_chart': 'Active vs passive forms by tense:\n\nTense               | Active Voice                               | Passive Voice                                          | Notes / Example\n--------------------|---------------------------------------------|--------------------------------------------------------|----------------------------------------------------------------\nPresent Simple      | Subject + base verb(s/es) + object          | Object + is/are + past participle (+ by subject)       | Active: She writes a letter. Passive: A letter is written by her.\nPresent Continuous  | Subject + is/am/are + verb-ing + object     | Object + is/are + being + past participle              | Active: She is writing a letter. Passive: A letter is being written by her.\nPresent Perfect     | Subject + has/have + past participle + obj. | Object + has/have + been + past participle             | Active: She has written a letter. Passive: A letter has been written by her.\nPast Simple         | Subject + past verb + object                | Object + was/were + past participle                    | Active: She wrote a letter. Passive: A letter was written by her.\nPast Continuous     | Subject + was/were + verb-ing + object      | Object + was/were + being + past participle            | Active: She was writing a letter. Passive: A letter was being written by her.\nPast Perfect        | Subject + had + past participle + object    | Object + had + been + past participle                  | Active: She had written a letter. Passive: A letter had been written by her.\nFuture Simple       | Subject + will + base verb + object         | Object + will be + past participle                     | Active: She will write a letter. Passive: A letter will be written by her.\nFuture Continuous   | Subject + will be + verb-ing + object       | (Rarely used in passive)                               | Active: She will be writing a letter. Passive form seldom used.\nFuture Perfect      | Subject + will have + past participle + obj.| Object + will have been + past participle              | Active: She will have written a letter. Passive: A letter will have been written by her.',
-      '/active_to_passive': 'Active: subject performs the action. Passive: subject receives the action.\nFormula: Object + be + past participle (+ by subject).\nExample: Active “The teacher explains the rule” → Passive “The rule is explained by the teacher.”',
-      '/passive_to_active': 'Locate the doer in the passive sentence and move it to subject position; adjust the verb to an active form.\nExample: Passive “The poem was written by Wordsworth.” → Active “Wordsworth wrote the poem.”',
-      '/direct_to_indirect': 'Change reporting verb tense, pronouns, time expressions, and remove quotation marks.\nExample: Direct “She said, ‘I am studying.’” → Indirect “She said that she was studying.”',
-      '/indirect_to_direct': 'Restore quotation marks, adjust pronouns/time words, and shift verb tense back if needed.\nExample: Indirect “He said that he would call me.” → Direct “He said, ‘I will call you.’”',
-      '/tense_explanation': 'English has 12 major tenses across three time frames (present, past, future) and four aspects (simple, continuous, perfect, perfect continuous).\n\n| Tense | Aspect | Structure | Example |\n| --- | --- | --- | --- |\n| Present | Simple | Subject + base verb (s/es) | She writes a letter. |\n|  | Continuous | Subject + is/am/are + verb-ing | She is writing a letter. |\n|  | Perfect | Subject + has/have + past participle | She has written a letter. |\n|  | Perfect Continuous | Subject + has/have + been + verb-ing | She has been writing a letter. |\n| Past | Simple | Subject + past verb | She wrote a letter. |\n|  | Continuous | Subject + was/were + verb-ing | She was writing a letter. |\n|  | Perfect | Subject + had + past participle | She had written a letter. |\n|  | Perfect Continuous | Subject + had + been + verb-ing | She had been writing a letter. |\n| Future | Simple | Subject + will/shall + base verb | She will write a letter. |\n|  | Continuous | Subject + will be + verb-ing | She will be writing a letter. |\n|  | Perfect | Subject + will have + past participle | She will have written a letter. |\n|  | Perfect Continuous | Subject + will have been + verb-ing | She will have been writing a letter. |\n\nUse this table as a quick reference when forming sentences in different time frames.',
-      '/conditional_sentences': 'Conditional sentence types:\n• Zero Conditional: If + present simple, present simple (facts). “If water reaches 100°C, it boils.”\n• First Conditional: If + present simple, will + base verb (real future). “If it rains, we will cancel the trip.”\n• Second Conditional: If + past simple, would + base verb (unlikely present/future). “If I had more time, I would join your class.”\n• Third Conditional: If + past perfect, would have + past participle (past unreal). “If she had studied, she would have passed.”\n• Mixed Conditional: combines second + third to show past condition with present result or vice versa. “If I had taken the job, I would be living abroad now.”',
-      '/sentence_structure': 'Simple (1 independent clause), compound (2 independent clauses), complex (independent + dependent), compound-complex (2 independent + 1 dependent).',
-      '/punctuation_rules': 'Key marks: period/full stop, comma for lists and clauses, semicolon between related clauses, colon introducing lists, apostrophe for possession/contractions, quotation marks for speech, question/exclamation marks for tone.',
-      '/common_errors': 'Frequent mistakes: subject-verb disagreement, misuse of articles, run-on sentences, wrong prepositions, double negatives, misplaced modifiers.\nKeep a correction log to track them.',
-      '/articles_usage': 'Use “a/an” for singular non-specific nouns (use “an” before vowel sound). Use “the” for specific or previously mentioned nouns.\nExample: “I saw a cat. The cat was sleeping.”',
-      '/preposition_exercises': 'Try: 1) Fill in blanks with at/on/in for time. 2) Choose correct preposition after verbs (listen to, depend on). 3) Describe a room using spatial prepositions.',
-      '/define_literature': 'Literature refers to written works with artistic or intellectual value, including fiction, poetry, drama, and nonfiction.',
-      '/types_of_literature': 'Main forms: prose (novels, short stories, essays), poetry (verse), drama (plays), and nonfiction (biography, memoir).',
-      '/famous_authors': 'Key authors: William Shakespeare, Jane Austen, Charles Dickens, Virginia Woolf, Chinua Achebe, Toni Morrison, Khaled Hosseini.',
-      '/literary_terms': 'Essential terms: simile, metaphor, personification, imagery, irony, symbolism, allusion, foreshadowing, motif, theme.',
-      '/plot_explanation': 'Plot is the sequence of events: exposition, rising action, climax, falling action, resolution.\nSummaries should show causation and conflict.',
-      '/character_analysis': 'Examine traits, motivations, relationships, development, and conflicts.\nSupport claims with textual evidence.',
-      '/theme_analysis': 'Identify central ideas (e.g., love, power, identity) and show how characters, plot, and symbols convey them.',
-      '/symbolism_in_lit': 'Symbols are objects or actions representing deeper meanings.\nExample: The green light in “The Great Gatsby” stands for hope and the American Dream.',
-      '/mood_and_tone': 'Mood is the atmosphere felt by the reader; tone is the author’s attitude.\nAnalyze diction, imagery, and syntax to determine both.',
-      '/literary_periods': 'Periods include Old English, Middle English, Renaissance, Neoclassical, Romantic, Victorian, Modernist, Postmodern, Contemporary.',
-      '/poetic_devices': 'Core devices: alliteration, assonance, consonance, metaphor, simile, personification, enjambment, hyperbole, onomatopoeia.',
-      '/prose_vs_poetry': 'Prose uses sentences and paragraphs; poetry uses lines, stanzas, rhythm, and often figurative language.\nPoetry is typically more condensed and musical.',
-      '/classic_works': 'Classics: “Pride and Prejudice,” “Moby-Dick,” “Great Expectations,” “Hamlet,” “Jane Eyre,” “The Odyssey.”',
-      '/modern_works': 'Modern highlights: “Beloved,” “1984,” “The Kite Runner,” “Things Fall Apart,” “The God of Small Things,” “Normal People.”',
-      '/literature_quiz': 'Sample quiz: 1) Who wrote “To Kill a Mockingbird”? 2) Define “dramatic irony.” 3) Identify the theme of “Animal Farm.”',
-      '/compare_authors': 'Compare authors by theme, style, historical context, narrative voice, and recurring motifs.\nExample: Austen vs. Brontë on romance and social class.',
-      '/literary_awards': 'Major awards: Nobel Prize in Literature, Booker Prize, Pulitzer Prize, National Book Award, Costa Book Award.',
-      '/critical_analysis': 'Steps: read closely, annotate, frame a thesis, analyze form and content, use theory if relevant, support with evidence, conclude significance.',
-      '/essay_topics_lit': 'Essay prompts: gender in Victorian fiction, symbolism of nature in Romantic poetry, satire in “Gulliver’s Travels,” identity in postcolonial novels.',
-      '/literature_summary': 'Summaries concisely cover setting, main characters, central conflict, major events, and resolution.',
-      '/define_poetry': 'Poetry is a literary form emphasizing rhythm, sound, imagery, and condensed language to evoke emotion or ideas.',
-      '/types_of_poems': 'Forms include sonnet, haiku, limerick, ode, elegy, epic, free verse, ballad, villanelle.',
-      '/famous_poets': 'Notable poets: William Wordsworth, Emily Dickinson, Langston Hughes, Maya Angelou, T. S. Eliot, Seamus Heaney, Rabindranath Tagore.',
-      '/rhyme_scheme': 'Rhyme scheme is the pattern of end rhymes labeled with letters (ABAB, AABB, etc.). Identify by matching sounds per line.',
-      '/meter_in_poetry': 'Meter is the rhythmic pattern of stressed and unstressed syllables (iambic pentameter, trochaic tetrameter). Count feet per line.',
-      '/alliteration_examples': 'Alliteration repeats initial consonant sounds: “Silver seas softly shimmer.”\nUse it to create musical effects.',
-      '/assonance_examples': 'Assonance repeats vowel sounds: “The light of the fire is a sight.”\nIt adds internal rhythm.',
-      '/onamatopoeia_examples': 'Onomatopoeia uses words that imitate sounds: buzz, splash, clang, whisper.',
-      '/personification_examples': 'Personification gives human qualities to nonhuman things: “The wind whispered secrets through the trees.”',
-      '/imagery_examples': 'Imagery appeals to senses: visual, auditory, tactile, gustatory, olfactory.\nExample: “Warm sunlight spilled across the quiet meadow.”',
-      '/analyze_poem': 'Steps: read aloud, note speaker and situation, paraphrase literal meaning, examine imagery, tone, devices, structure, and interpret theme.',
-      '/sonnet_structure': 'Traditional sonnets have 14 lines, often iambic pentameter. Shakespearean: 3 quatrains + couplet (ABAB CDCD EFEF GG). Petrarchan: octave (ABBAABBA) + sestet (CDECDE).',
-      '/haiku_examples': 'Haiku follow 5-7-5 syllable pattern, often about nature.\nExample: “Winter solitude / In a world of one color / The sound of wind.”',
-      '/limerick_examples': 'Limericks are humorous five-line poems with AABBA rhyme and anapestic meter.\nExample: “There once was a teacher from Nome…”',
-      '/poetic_devices_quiz': 'Quiz idea: identify devices in lines, match terms to definitions, explain effects of imagery or metaphor.',
-      '/famous_poem_summary': 'Example: “The Road Not Taken” by Frost—speaker reflects on choices symbolized by diverging paths and their impact on life.',
-      '/write_poem_prompt': 'Prompt: Write a poem about learning English using sensory imagery and at least one metaphor about language.',
-      '/free_verse_examples': 'Free verse avoids strict meter or rhyme.\nExample poets: Walt Whitman, Carl Sandburg, contemporary spoken word artists.',
-      '/poetry_terms': 'Key terms: stanza, enjambment, caesura, refrain, conceit, volta, diction, persona.',
-      '/poetry_analysis_steps': '1) Read aloud. 2) Identify speaker, audience, setting. 3) Note structure and devices. 4) Interpret meaning. 5) Connect to context.',
-      '/define_drama': 'Drama is literature designed for performance, combining dialogue, action, and stage directions to tell a story.',
-      '/types_of_drama': 'Major types: tragedy, comedy, tragicomedy, melodrama, farce, historical drama, musical theatre.',
-      '/famous_playwrights': 'Key playwrights: William Shakespeare, Henrik Ibsen, George Bernard Shaw, Arthur Miller, Lorraine Hansberry, August Wilson.',
-      '/elements_of_drama': 'Elements: plot, characters, dialogue, conflict, setting, theme, spectacle, music.',
-      '/structure_of_play': 'Typical structure: exposition, rising action, climax, falling action, resolution; often organized into acts and scenes.',
-      '/tragedy_vs_comedy': 'Tragedy deals with serious themes and often ends in downfall; comedy highlights conflicts with humor and usually ends happily.',
-      '/dramatic_terms': 'Terms: monologue, soliloquy, aside, stage directions, blocking, protagonist, antagonist, dramatic irony.',
-      '/analyze_character_drama': 'Examine objectives, obstacles, relationships, evolution, and delivery hints from stage directions.',
-      '/analyze_plot_drama': 'Map scenes, turning points, climax, and resolution; note how staging intensifies conflict.',
-      '/analyze_theme_drama': 'Track motifs, dialogue, and conflicts that reveal the central message (e.g., justice, identity, power).',
-      '/famous_plays_summary': 'Examples: “Hamlet” explores revenge and indecision; “Death of a Salesman” critiques the American Dream; “A Doll’s House” tackles gender roles.',
-      '/drama_quiz': 'Quiz suggestions: identify playwrights, match terms to definitions, analyze short scene excerpts.',
-      '/stage_directions': 'Stage directions guide movement, tone, lighting, and props for actors and directors (e.g., “She crosses to the window”).',
-      '/dialogue_analysis': 'Focus on subtext, diction, pacing, and how dialogue reveals character motives and relationships.',
-      '/one_act_plays': 'Notable one-act plays: “The Bear” by Chekhov, “Riders to the Sea” by Synge, “The Dumb Waiter” by Pinter.',
-      '/drama_exercises': 'Exercises: improvise scenes from prompts, rewrite a monologue, storyboard stage blocking, create character backstories.',
-      '/dramatic_conflict': 'Types: man vs. self, man vs. man, man vs. society, man vs. fate/nature; conflicts drive dramatic tension.',
-      '/write_short_play': 'Prompt: Write a 10-minute play set in an English classroom facing a sudden challenge. Include clear stage directions.',
-      '/modern_drama': 'Modern plays: “Waiting for Godot,” “Top Girls,” “Angels in America,” “Disgraced,” “The Curious Incident of the Dog in the Night-Time.”',
-      '/historical_drama': 'Historical dramas present past events: “Henry V,” “A Man for All Seasons,” “The Crucible,” “Julius Caesar.”',
-      '/vowel_sounds': 'English vowels: short (cat, bed, pin, not, cup), long (cake, team, time, home, flute), plus schwa /ə/ and diphthongs.',
-      '/consonant_sounds': 'Voiced vs voiceless consonants (b/p, d/t, g/k). Include fricatives, stops, affricates, nasals, liquids, glides.',
-      '/short_vs_long_vowels': 'Short vowels occur in closed syllables (sit, cup); long vowels often in open syllables or silent “e” words (site, cube).',
-      '/diphthongs': 'English diphthongs glide between vowel sounds: /aɪ/ (time), /eɪ/ (day), /ɔɪ/ (boy), /aʊ/ (house), /oʊ/ (go).',
-      '/stress_in_words': 'Word stress falls on one syllable (TAble, beGIN). Changing stress can change meaning (REcord vs reCORD).',
-      '/stress_in_sentences': 'Sentence stress emphasizes content words (nouns, verbs) and reduces function words.\nExample: “I DIDN’T say he stole the money.”',
-      '/intonation_patterns': 'Rising intonation for yes/no questions, falling for statements and wh-questions, fall-rise for polite or uncertain meanings.',
-      '/pronunciation_tips': 'Tips: listen actively, imitate native speakers, record yourself, practice minimal pairs, watch mouth positioning.',
-      '/minimal_pairs': 'Pairs differing by one sound: ship/sheep, fan/van, bat/bet, light/right.\nUse for accuracy drills.',
-      '/silent_letters': 'Common silent letters: k in knife, b in thumb, w in write, l in calm, h in hour.',
-      '/phonetic_symbols': 'International Phonetic Alphabet (IPA) represents sounds precisely (e.g., /θ/ in think, /ð/ in this, /ʃ/ in she).',
-      '/pronounce_word': 'Say the word slowly, mark stressed syllable, check IPA or audio, practice linking to surrounding words.',
-      '/pronounce_sentence': 'Chunk the sentence, note stress and intonation, practice connected speech, linking sounds and reductions.',
-      '/common_mispronunciations': 'Examples: “comfortable” (/ˈkʌmftəbl/), “salmon” (/ˈsæmən/), “develop” (/dɪˈveləp/), “schedule” (UK /ˈʃedjuːl/, US /ˈskedʒuːl/).',
-      '/accent_differences': 'British vs American: pronunciation of /r/, vowel sounds (bath), vocabulary differences.\nOther accents add unique intonation patterns.',
-      '/rhythm_in_speech': 'English is stress-timed: stressed syllables occur at regular intervals, unstressed syllables shorten to fit the rhythm.',
-      '/linking_sounds': 'Link words: consonant-to-vowel (“turn off”), vowel-to-vowel (use glide, “go on”), identical consonants merge (“big game”).',
-      '/reduce_sounds': 'Reduce function words to schwa: to /tə/, for /fə/, and /ən/. Helps natural speech flow.',
-      '/intelligible_speech': 'Aim for clarity: moderate speed, clear stress, accurate vowel length, appropriate intonation, and articulation.',
-      '/pronunciation_quiz': 'Quiz idea: identify IPA symbols, choose correct stress, transcribe minimal pairs, match words to audio clips.',
-      '/nepali_vowels': 'Nepali vowels: अ /a/, आ /aː/, इ /i/, ई /iː/, उ /u/, ऊ /uː/, ऋ /ri/, ए /e/, ऐ /ai/, ओ /o/, औ /au/.\nLong vs short marked by matras.',
-      '/nepali_consonants': 'Groups: guttural क ख ग घ ङ, palatal च छ ज झ ञ, retroflex ट ठ ड ढ ण, dental त थ द ध न, labial प फ ब भ म, plus semivowels य र ल व and sibilants श ष स ह.',
-      '/nepali_pronunciation_tips': 'Maintain aspiration contrasts (क vs ख), clear retroflex sounds, and nasalization when indicated.',
-      '/nepali_stress': 'Nepali stress is generally light and falls on the first syllable, less contrastive than in English.',
-      '/nepali_tones': 'Nepali is not tonal like Mandarin; intonation conveys emotion or question forms rather than lexical meaning.',
-      '/nepali_minimal_pairs': 'Examples: बल /bal/ (strength) vs बाल /baːl/ (hair); कलम /kalam/ vs कलाम /kalaːm/.\nFocus on vowel length.',
-      '/nepali_syllables': 'Mostly CV (consonant + vowel) structure. Clusters occur with conjunct consonants (e.g., स्कूल).',
-      '/nepali_word_stress': 'Primary stress often on first syllable: का-क-रो (kā-ka-ro). Emphasis changes with context but not phonemic.',
-      '/nepali_sentence_rhythm': 'Rhythm is syllable-timed; each syllable receives similar duration compared to English stress-timed rhythm.',
-      '/nepali_phonetic_symbols': 'Nepali uses Devanagari script; IPA approximations help show aspirated (ʰ) and retroflex (ʈ, ɖ) sounds.',
-      '/nepali_common_mispronunciations': 'Learners may confuse retroflex/dental pairs or short vs long vowels. Practice minimal pairs to distinguish.',
-      '/nepali_pronounce_word': 'Break into syllables, pronounce consonant clusters carefully, sustain long vowels, note nasal markers (ँ, ँ).',
-      '/nepali_pronounce_sentence': 'Maintain steady rhythm, slight rise for yes/no questions, end with fall for statements.',
-      '/nepali_diphthongs': 'Common diphthongs: ऐ /ai/, औ /au/, इउ /iu/, एउ /eu/. Glide smoothly between vowels.',
-      '/nepali_accent_variations': 'Regional variants include Kathmandu dialect, eastern vs western pronunciations, and influence from neighboring languages.',
-      '/nepali_reading_tips': 'Practice Devanagari script daily, read simple stories aloud, connect letters with sounds, and track matra changes.',
-      '/nepali_spelling_sounds': 'Spelling largely phonetic, but conjuncts (ज्ञ, क्ष, त्र) have blended sounds.\nLearn common ligatures early.',
-      '/nepali_tongue_twisters': 'Try: “कर्कटको कर्कटाकार काँचो काँढा काट्ने” to build agility in aspirated sounds.',
-      '/nepali_listen_repeat': 'Exercise: listen to Nepali radio segments, pause, repeat sentence-by-sentence focusing on vowel length.',
-      '/nepali_quiz_sounds': 'Quiz: match Devanagari letters to IPA, identify aspirated vs unaspirated, choose correct pronunciation audio.',
-      '/define_story': 'A story is a narrative with characters, plot, conflict, and setting designed to entertain or inform.',
-      '/types_of_stories': 'Types: fairy tales, myths, legends, fables, detective stories, science fiction, historical fiction, realist stories.',
-      '/story_elements': 'Elements: plot, characters, setting, conflict, theme, point of view, tone.',
-      '/analyze_story_plot': 'Identify exposition, rising action, climax, falling action, resolution; examine cause-effect relationships.',
-      '/analyze_story_character': 'Explore direct/indirect characterization, motivations, conflicts, growth, and relationships.',
-      '/analyze_story_theme': 'Determine the central message or lesson and support with key events or symbols.',
-      '/famous_short_stories': 'Classics: “The Lottery” (Jackson), “The Gift of the Magi” (Henry), “A Piece of Yellow Soap” (Bhattarai), “A Clean, Well-Lighted Place” (Hemingway).',
-      '/story_summary': 'Summarize with setting, main characters, conflict, major events, and resolution in 4-5 sentences.',
-      '/moral_of_story': 'State the lesson learned (e.g., “slow and steady wins the race”). Explain how plot reveals it.',
-      '/write_story_prompt': 'Prompt: Write a short story about a learner whose English speaking ability unlocks an unexpected opportunity.',
-      '/story_quiz': 'Quiz prompts: identify climax, name protagonist/antagonist, explain narrative point of view.',
-      '/compare_stories': 'Compare themes, character arcs, narrative voice, settings, and cultural contexts.',
-      '/story_conflict_types': 'Conflicts: character vs self, character vs character, character vs society, character vs nature, character vs technology, character vs fate.',
-      '/setting_in_story': 'Setting covers time, place, environment, culture. Describe sensory details that influence characters.',
-      '/story_climax': 'Climax is the turning point of highest tension where the central conflict peaks.',
-      '/story_resolution': 'Resolution shows the outcome of the conflict and ties up loose ends; sometimes called denouement.',
-      '/story_analysis_steps': '1) Read closely. 2) Identify elements. 3) Examine symbolism. 4) Evaluate theme. 5) Conclude impact on readers.',
-      '/modern_stories': 'Modern stories: Jhumpa Lahiri’s “Interpreter of Maladies,” Raymond Carver’s “Cathedral,” Chimamanda Adichie’s “Apollo.”',
-      '/classic_stories': 'Classics: “Rip Van Winkle,” “The Tell-Tale Heart,” “The Necklace,” “Siddhartha’s Quest.”',
-      '/creative_story_writing': 'Guide: brainstorm premise, outline conflict, develop characters, draft quickly, revise for clarity, check pacing and dialogue.',
-      '/define_novel': 'A novel is an extended fictional narrative in prose focusing on character development and complex plots.',
-      '/types_of_novel': 'Genres: bildungsroman, historical, mystery, fantasy, science fiction, realist, epistolary, dystopian, romance.',
-      '/famous_novelists': 'Notable novelists: George Eliot, Leo Tolstoy, Fyodor Dostoevsky, Toni Morrison, Arundhati Roy, Haruki Murakami.',
-      '/elements_of_novel': 'Elements include plot structure, characters, setting, point of view, theme, conflict, style.',
-      '/novel_plot_analysis': 'Track major plot arcs: inciting incident, rising action, climax, falling action, resolution; note subplots.',
-      '/novel_character_analysis': 'Assess protagonists, antagonists, dynamic vs static characters, motivations, growth, relationships.',
-      '/novel_theme_analysis': 'Identify key ideas (identity, society, power) and analyze how recurring motifs support them.',
-      '/famous_novels_summary': 'Examples: “To Kill a Mockingbird” explores racial justice; “1984” warns against totalitarian control; “Pride and Prejudice” critiques class and marriage.',
-      '/novel_quiz': 'Quiz questions: match authors to novels, define narrative viewpoint, explain symbolism in a chosen excerpt.',
-      '/classic_vs_modern_novel': 'Classic novels often focus on social norms and detailed narration; modern novels may experiment with structure, voice, and themes like identity and globalization.',
-      '/novel_writing_tips': 'Tips: design layered characters, outline plot arcs, maintain consistent POV, weave subplots, revise multiple drafts.',
-      '/novel_conflict': 'Conflicts include internal (character vs self) and external (character vs character/society/nature/technology).',
-      '/novel_setting': 'Setting shapes mood and culture; analyze time period, location, social environment, historical context.',
-      '/literary_devices_in_novel': 'Devices: foreshadowing, flashback, symbolism, irony, motif, imagery, unreliable narrator.',
-      '/novel_excerpts': 'Study short passages from novels to analyze style—e.g., opening of “Middlemarch” or “The Catcher in the Rye.”',
-      '/analyze_narrator': 'Evaluate narrator type (first-person, third-person limited/omniscient), reliability, bias, and perspective.',
-      '/novel_summary_short': 'Provide 3-4 sentence summaries focusing on protagonist, conflict, key events, conclusion.',
-      '/novel_essay_topics': 'Essay ideas: social criticism in “Hard Times,” memory and trauma in “Beloved,” symbolism of setting in “The Great Gatsby.”',
-      '/modern_novels': 'Modern novels: “The Night Circus,” “Homegoing,” “The Testaments,” “The Shadow Lines,” “The Luminaries.”',
-      '/classic_novels': 'Classic novels: “Great Expectations,” “Anna Karenina,” “Wuthering Heights,” “Don Quixote,” “Jane Eyre.”',
-      '/ielts_overview': 'IELTS assesses listening, reading, writing, speaking on a 0–9 band scale (Academic or General Training).',
-      '/ielts_listening_tips': 'Tips: preview questions, note keywords, focus on paraphrases, watch for distractors, check spelling.',
-      '/ielts_reading_tips': 'Use skimming for gist, scanning for details, underline keywords, manage roughly 20 minutes per passage.',
-      '/ielts_writing_tips': 'Task 1: analyze visuals, overview key trends. Task 2: answer prompt directly, use clear paragraphs, support arguments.',
-      '/ielts_speaking_tips': 'Stay fluent, expand answers, use linking phrases, practice part 2 monologues with structure, vary vocabulary.',
-      '/ielts_sample_questions': 'Example: Describe a book you recently read (Speaking). Summarize data from a chart (Writing Task 1). Discuss advantages/disadvantages of online learning (Task 2).',
-      '/ielts_score_criteria': 'Band descriptors assess task response, coherence/cohesion, lexical resource, grammatical range/accuracy, pronunciation for speaking.',
-      '/ielts_task1_examples': 'Describe line graphs, bar charts, maps, processes. Mention significant trends and comparisons in 150 words.',
-      '/ielts_task2_examples': 'Essay types: opinion, discussion, problem-solution, advantages/disadvantages. Example: “Some believe university should be free—discuss both views.”',
-      '/ielts_vocabulary': 'Useful sets: trend verbs (increase, fluctuate), academic connectors (moreover, however), speaking fillers (to be honest, in my view).',
-      '/ielts_grammar_tips': 'Use complex sentences with relative clauses, conditionals, and range of tenses. Check subject-verb agreement and article use.',
-      '/ielts_pronunciation_tips': 'Focus on sentence stress, clear vowel sounds, and intonation patterns. Record mock interviews for feedback.',
-      '/ielts_mock_test': 'Create full practice: 30-minute listening audio, 60-minute reading passage set, writing tasks (60 minutes), speaking interview with partner.',
-      '/ielts_common_errors': 'Pitfalls: memorized answers, exceeding word limit without structure, missing overview in Task 1, pausing too long in speaking.',
-      '/ielts_time_management': 'Listening: follow section transitions. Reading: move on if stuck. Writing: 20 minutes Task 1, 40 minutes Task 2. Speaking: pace answers but avoid rushing.',
-      '/ielts_reading_strategies': 'Identify question types (T/F/NG, matching headings). Use skimming, scanning, and note synonyms.',
-      '/ielts_listening_practice': 'Use official Cambridge tests, IELTS podcasts, British Council recordings; replay to check missed answers.',
-      '/ielts_speaking_practice': 'Record yourself on part 2 topics, join speaking clubs, practice follow-up questions to extend responses.',
-      '/ielts_writing_task_examples': 'Study high-band sample essays noting structure, vocabulary, and expansion of ideas.',
-      '/ielts_preparation_plan': 'Plan: 12-week schedule with weekly full tests, daily vocabulary, alternating skill focus, reflection after each mock.',
-      '/sat_overview': 'SAT measures evidence-based reading and writing plus math, scored 400–1600. Optional essay removed in most locations.',
-      '/sat_math_tips': 'Review algebra, problem solving, data analysis, basic trigonometry. Use official practice tests, memorize key formulas.',
-      '/sat_reading_tips': 'Read actively, annotate main ideas, predict answers before viewing choices, watch for inference questions.',
-      '/sat_writing_tips': 'Target grammar rules: subject-verb agreement, pronouns, modifiers, punctuation, parallelism. Practice editing passages.',
-      '/sat_essay_tips': 'If taking essay, analyze argument structure, evidence, reasoning, persuasive techniques; write intro, body, conclusion.',
-      '/sat_vocabulary': 'Focus on Tier 2 academic words and context clues. Create flashcards for high-frequency terms.',
-      '/sat_practice_questions': 'Practice: College Board official questions, Khan Academy drills, mix of reading, writing, math problems.',
-      '/sat_score_explanation': 'Each section scored 200–800. Reading & Writing combined, Math separate. Percentiles show relative performance.',
-      '/sat_time_management': 'Reading: ~13 minutes per passage set. Writing: 35 minutes for 44 questions. Math (no calc): 25 minutes, (with calc): 55 minutes.',
-      '/sat_reading_strategies': 'Skim passage for structure, answer easier questions first, refer back to line references precisely.',
-      '/sat_grammar_tips': 'Know punctuation rules, verb tense consistency, pronoun clarity, idioms, comparison structures.',
-      '/sat_math_practice': 'Complete mixed-topic sets, review mistakes, memorize shortcuts, practice grid-ins carefully.',
-      '/sat_essay_examples': 'Study sample essays scoring 4/4/4 to see strong thesis, varied evidence, sophisticated vocabulary.',
-      '/sat_common_errors': 'Common issues: rushing through reading passages, misreading graphs, ignoring unit conversions, leaving blanks.',
-      '/sat_mock_test': 'Schedule full-length digital or paper practice under test conditions, then analyze results question by question.',
-      '/sat_data_analysis': 'Practice interpreting tables, charts, scatterplots; focus on unit rates, percentages, proportional reasoning.',
-      '/sat_critical_reading': 'Identify author purpose, tone, and evidence; understand paired passages relationships.',
-      '/sat_problem_solving': 'Use back-solving, plugging numbers, and estimation to check work; underline key data.',
-      '/sat_test_day_tips': 'Rest well, eat balanced breakfast, arrive early, bring admission ticket, photo ID, calculator, spare batteries.',
-      '/sat_preparation_plan': 'Plan: 10-12 weeks with baseline test, weekly practice sections, alternating reading/math focus, review sessions, final two full mocks.'
+      '/alphabets': 'English Alphabets:\nA, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z',
+      '/consonant_sounds': 'English Consonant Sounds:\nA. Plosives (Stops)\n/p/ – pen\n/b/ – bat\n/t/ – top\n/d/ – dog\n/k/ – cat\n/g/ – go\n\nB. Affricates\n/ʧ/ – “ch” in chair\n/ʤ/ – “j” in judge\n\nC. Fricatives\n/f/ – fun\n/v/ – van\n/θ/ – “th” in think\n/ð/ – “th” in this\n/s/ – see\n/z/ – zoo\n/ʃ/ – “sh” in ship\n/ʒ/ – “s” in vision\n/h/ – hat\n\nD. Nasals\n/m/ – man\n/n/ – no\n/ŋ/ – “ng” in sing\n\nE. Approximants\n/l/ – light (lateral approximant)\n/r/ – red (retroflex or postalveolar approximant)\n/j/ – yes (palatal approximant)\n/w/ – wet (labio‑velar approximant)',
+      '/vowel_sounds_detailed': 'English Vowel Sounds:\nA. Short Vowels\n/ɪ/ – sit\n/e/ (or /ɛ/) – bed\n/æ/ – cat\n/ʌ/ – cup\n/ɒ/ – hot (British)\n/ʊ/ – put\n/ə/ – about (schwa, unstressed)\n\nB. Long Vowels\n/iː/ – see\n/uː/ – food\n/ɔː/ – call\n/ɜː/ – bird (British; r‑colored in American)\n/ɑː/ – father\n\nC. Diphthongs\n/eɪ/ – day\n/aɪ/ – my\n/ɔɪ/ – boy\n/aʊ/ – now\n/əʊ/ – go (British)\n/oʊ/ – go (American)\n/ɪə/ – here (British)\n/eə/ – hair (British)\n/ʊə/ – tour (British)',
+      '/verb': 'Verb:\nA verb is a word that expresses an action, occurrence, or state of being.\n\nKey points:\n• Action verbs – show something happening physically or mentally (run, write, think, jump).\n• Linking verbs – connect the subject to a description or state (be, seem, become).\n• Auxiliary (helping) verbs – help the main verb form tenses, moods, or voices (is, have, do, can, will).\n\nExamples:\n• She runs every morning. (action)\n• He is happy. (linking)\n• They have finished their homework. (auxiliary + main)\n\nIn short: a verb is the “doing” or “being” word in a sentence.',
+      '/types_of_verbs': 'Types of Verbs:\nA. Action Verbs – express physical or mental actions.\n   Examples: run, jump, write; think, imagine, believe\nB. Linking Verbs – connect the subject to a state/description.\n   Common: be, seem, become, appear, feel, look\n   Example: She is happy.\nC. Auxiliary (Helping) Verbs – help the main verb form tenses/voices/moods.\n   Common: be, have, do, can, will, shall, may, might\n   Example: They have finished their homework.\nD. Modal Verbs – express possibility, ability, permission, obligation.\n   Common: can, could, may, might, shall, should, will, would, must\n   Example: You should study for the exam.\nE. Transitive vs Intransitive – takes a direct object vs not.\n   Transitive: She reads a book. Intransitive: He sleeps soundly.\nF. Regular vs Irregular – past tense with -ed vs different forms.\n   walk→walked; go→went, eat→ate',
+      '/sentence': 'Sentence:\nA sentence is a group of words that expresses a complete thought. It usually contains a subject (who/what) and a predicate (what the subject does or is).\n\nKey points:\n• Must form a complete thought.\nExample: She reads a book. ✅',
+      '/types_of_sentence': 'Types of Sentence:\nA. Declarative – states a fact/opinion/idea. Ends with period.\n   Example: I enjoy reading books.\nB. Interrogative – asks a question. Ends with ?\n   Example: Do you enjoy reading books?\nC. Imperative – gives command/request/advice. Ends with . or !\n   Example: Please close the door.\nD. Exclamatory – expresses strong emotion. Ends with !\n   Example: What a beautiful day!\nE. Optative – expresses wish/desire/hope. Often ends with !\n   Words: May, let, hope, wish\n   Examples: May you succeed! Let peace prevail! I hope you have a great day!',
+      '/tense': 'Tense:\nTense expresses the time of an action or state shown by a verb (past, present, future). Verb forms change to indicate tense.\n• Present: action happening now/regularly – She reads every morning.\n• Past: action before now – She read a book yesterday.\n• Future: action later – She will read a book tomorrow.\nIn short: tense is the “time marker” of a verb.',
+      '/tense_table': '| Tense | Structure | Example |\n| --- | --- | --- |\n| Present Simple | Subject + base verb (s/es for 3rd person) | She reads a book. |\n| Present Continuous | Subject + am/is/are + verb+ing | She is reading a book. |\n| Present Perfect | Subject + has/have + past participle | She has read three books. |\n| Present Perfect Continuous | Subject + has/have + been + verb+ing | She has been reading for 2 hours. |\n| Past Simple | Subject + past form of verb | She read a book yesterday. |\n| Past Continuous | Subject + was/were + verb+ing | She was reading a book at 5 pm. |\n| Past Perfect | Subject + had + past participle | She had read the book before class. |\n| Past Perfect Continuous | Subject + had + been + verb+ing | She had been reading for 2 hours before dinner. |\n| Future Simple | Subject + will/shall + base verb | She will read a book tomorrow. |\n| Future Continuous | Subject + will/shall + be + verb+ing | She will be reading at 7 pm. |\n| Future Perfect | Subject + will/shall + have + past participle | She will have read the book by tomorrow. |\n| Future Perfect Continuous | Subject + will/shall + have + been + verb+ing | She will have been reading for 3 hours by 8 pm. |',
+      '/voice_intro': 'Voice:\nActive Voice – subject performs the action.\nStructure: Subject + Verb + Object\nExample: The teacher teaches the students.\n\nPassive Voice – object becomes subject; focus on action/receiver.\nStructure: Object + form of be + past participle + (by + agent)\nExample: The students are taught by the teacher.\n\nKey points: Active emphasizes the doer; passive emphasizes the action/receiver or hides the doer.',
+      '/voice_structures': '| Tense | Active Voice Structure | Passive Voice Structure | Example |\n| --- | --- | --- | --- |\n| Present Simple | Subject + V1(s/es) + Object | Object + am/is/are + V3 + (by Subject) | Active: She writes a letter. Passive: A letter is written by her. |\n| Present Continuous | Subject + am/is/are + V‑ing + Object | Object + am/is/are + being + V3 + (by Subject) | Active: She is writing a letter. Passive: A letter is being written by her. |\n| Present Perfect | Subject + has/have + V3 + Object | Object + has/have + been + V3 + (by Subject) | Active: She has written a letter. Passive: A letter has been written by her. |\n| Past Simple | Subject + V2 + Object | Object + was/were + V3 + (by Subject) | Active: She wrote a letter. Passive: A letter was written by her. |\n| Past Continuous | Subject + was/were + V‑ing + Object | Object + was/were + being + V3 + (by Subject) | Active: She was writing a letter. Passive: A letter was being written by her. |\n| Past Perfect | Subject + had + V3 + Object | Object + had + been + V3 + (by Subject) | Active: She had written a letter. Passive: A letter had been written by her. |\n| Future Simple | Subject + will/shall + V1 + Object | Object + will/shall + be + V3 + (by Subject) | Active: She will write a letter. Passive: A letter will be written by her. |\n| Future Continuous | Subject + will/shall + be + V‑ing + Object | (Rare in passive) | Active: She will be writing a letter. |\n| Future Perfect | Subject + will/shall + have + V3 + Object | Object + will/shall + have been + V3 + (by Subject) | Active: She will have written a letter. Passive: A letter will have been written by her. |',
+      '/narration': 'Narration:\nTelling/reporting events.\n• Direct Speech: exact words. Example: He said, “I am going to school.”\n• Indirect Speech: reported form. Example: He said that he was going to school.\nKey: tense often shifts back in indirect speech.',
+      '/narration_table': '| Rule | Direct Speech | Indirect Speech | Example |\n| --- | --- | --- | --- |\n| Tense Change | Present → Past | She said, “I am happy.” | She said that she was happy. |\n| Past Tense | Past → Past Perfect | He said, “I went to school.” | He said that he had gone to school. |\n| Future Tense | Will → Would | She said, “I will help you.” | She said that she would help me. |\n| Present Perfect | Have/Has → Had | He said, “I have finished my homework.” | He said that he had finished his homework. |\n| Commands/Requests | Imperative → Infinitive | He said, “Please open the door.” | He asked me to open the door. |\n| Yes/No Questions | Aux + Subject | “Do you like tea?” | He asked if I liked tea. |\n| Wh‑ Questions | Wh + Subject + Verb | “Where are you going?” | He asked me where I was going. |\n| Modals | Can→Could, May→Might | “I can swim.” | He said he could swim. |\n| Reporting Verb | said/told/asked | “I love reading.” | She told me that she loved reading. |'
     };
 
     function parseCommand(rawInput){
@@ -1287,16 +1106,13 @@
       userInput.focus();
     });
 
-    // --- Read entire conversation aloud ---
-    function collectConversation(){
-      const bubbles = Array.from(messageList.querySelectorAll('.bubble'));
-      const parts = bubbles.map(b => {
-        // First child node contains text content before <time>
-        const firstNode = b.childNodes[0];
-        const text = firstNode && firstNode.nodeType === Node.TEXT_NODE ? firstNode.textContent : b.textContent;
-        return (text || '').trim();
-      }).filter(Boolean);
-      return parts.join('. ');
+    // --- Read only the most recent chat message aloud ---
+    function collectCurrentMessage(){
+      const lastMessage = messageList.querySelector('.message:last-child .bubble');
+      if(!lastMessage) return '';
+      const firstNode = lastMessage.childNodes[0];
+      const text = firstNode && firstNode.nodeType === Node.TEXT_NODE ? firstNode.textContent : lastMessage.textContent;
+      return (text || '').trim();
     }
     readChatBtn.addEventListener('click', () => {
       if(window.speechSynthesis && window.speechSynthesis.speaking){
@@ -1304,12 +1120,12 @@
         resetReadButton();
         return;
       }
-      const full = collectConversation();
-      if(!full){
-        speakForce('The conversation is empty.');
+      const current = collectCurrentMessage();
+      if(!current){
+        speakForce('There is no message to read yet.');
         return;
       }
-      speakForce(full);
+      speakForce(current);
     });
 
     document.addEventListener('visibilitychange', () => {
